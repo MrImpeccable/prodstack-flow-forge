@@ -6,8 +6,8 @@ const About = () => {
         <div className="max-w-4xl mx-auto">
           <div className="grid md:grid-cols-2 gap-12 items-center">
             <div className="space-y-6">
-              <h2 className="text-3xl md:text-4xl font-bold text-gray-900 dark:text-white">
-                👋 About Us
+              <h2 className="text-3xl md:text-4xl font-bold font-heading text-gray-900 dark:text-white">
+                About Us
               </h2>
               <div className="space-y-4 text-lg text-gray-700 dark:text-gray-300 leading-relaxed">
                 <p>
@@ -25,7 +25,7 @@ const About = () => {
             <div className="relative">
               <div className="bg-white dark:bg-gray-900 rounded-2xl p-8 shadow-xl">
                 <img 
-                  src="/lovable-uploads/a8cc8267-bcf6-447e-8cb0-6ad1c6dc49be.png" 
+                  src="/lovable-uploads/3b4d22fa-d92b-49a4-9d92-263e24102342.png" 
                   alt="ProdStack Logo - Visual identity reflecting clarity and structure" 
                   className="h-16 w-auto mx-auto mb-6"
                 />

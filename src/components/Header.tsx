@@ -8,33 +8,32 @@ const Header = () => {
 
   return (
     <header className="sticky top-0 z-50 bg-white/80 dark:bg-gray-900/80 backdrop-blur-sm border-b border-gray-100 dark:border-gray-800">
-      <div className="container mx-auto px-4 py-4">
+      <div className="container mx-auto px-6 py-4">
         <div className="flex items-center justify-between">
           <div className="flex items-center space-x-3">
             <img 
-              src="/lovable-uploads/a8cc8267-bcf6-447e-8cb0-6ad1c6dc49be.png" 
+              src="/lovable-uploads/3b4d22fa-d92b-49a4-9d92-263e24102342.png" 
               alt="ProdStack Logo" 
-              className="h-8 w-auto"
+              className="h-auto w-32 md:w-44"
             />
-            <span className="text-xl font-bold text-gray-900 dark:text-white">ProdStack</span>
           </div>
 
           {/* Desktop Navigation */}
           <nav className="hidden md:flex items-center space-x-8">
-            <a href="#features" className="text-gray-600 hover:text-red-600 dark:text-gray-300 dark:hover:text-red-400 transition-colors">
+            <a href="#features" className="text-gray-600 hover:text-red-600 dark:text-gray-300 dark:hover:text-red-400 transition-colors font-medium">
               Features
             </a>
-            <a href="#how-it-works" className="text-gray-600 hover:text-red-600 dark:text-gray-300 dark:hover:text-red-400 transition-colors">
+            <a href="#how-it-works" className="text-gray-600 hover:text-red-600 dark:text-gray-300 dark:hover:text-red-400 transition-colors font-medium">
               How It Works
             </a>
-            <a href="#about" className="text-gray-600 hover:text-red-600 dark:text-gray-300 dark:hover:text-red-400 transition-colors">
+            <a href="#about" className="text-gray-600 hover:text-red-600 dark:text-gray-300 dark:hover:text-red-400 transition-colors font-medium">
               About
             </a>
-            <a href="#contact" className="text-gray-600 hover:text-red-600 dark:text-gray-300 dark:hover:text-red-400 transition-colors">
+            <a href="#contact" className="text-gray-600 hover:text-red-600 dark:text-gray-300 dark:hover:text-red-400 transition-colors font-medium">
               Contact
             </a>
-            <Button className="bg-red-600 hover:bg-red-700 text-white">
-              Start Free Trial
+            <Button className="bg-red-600 hover:bg-red-700 text-white font-semibold">
+              Try the Persona Builder
             </Button>
           </nav>
 
@@ -51,20 +50,20 @@ const Header = () => {
         {isMenuOpen && (
           <nav className="md:hidden mt-4 pb-4 border-t border-gray-100 dark:border-gray-800 pt-4">
             <div className="flex flex-col space-y-4">
-              <a href="#features" className="text-gray-600 hover:text-red-600 dark:text-gray-300 dark:hover:text-red-400 transition-colors">
+              <a href="#features" className="text-gray-600 hover:text-red-600 dark:text-gray-300 dark:hover:text-red-400 transition-colors font-medium">
                 Features
               </a>
-              <a href="#how-it-works" className="text-gray-600 hover:text-red-600 dark:text-gray-300 dark:hover:text-red-400 transition-colors">
+              <a href="#how-it-works" className="text-gray-600 hover:text-red-600 dark:text-gray-300 dark:hover:text-red-400 transition-colors font-medium">
                 How It Works
               </a>
-              <a href="#about" className="text-gray-600 hover:text-red-600 dark:text-gray-300 dark:hover:text-red-400 transition-colors">
+              <a href="#about" className="text-gray-600 hover:text-red-600 dark:text-gray-300 dark:hover:text-red-400 transition-colors font-medium">
                 About
               </a>
-              <a href="#contact" className="text-gray-600 hover:text-red-600 dark:text-gray-300 dark:hover:text-red-400 transition-colors">
+              <a href="#contact" className="text-gray-600 hover:text-red-600 dark:text-gray-300 dark:hover:text-red-400 transition-colors font-medium">
                 Contact
               </a>
-              <Button className="bg-red-600 hover:bg-red-700 text-white w-full">
-                Start Free Trial
+              <Button className="bg-red-600 hover:bg-red-700 text-white w-full font-semibold">
+                Try the Persona Builder
               </Button>
             </div>
           </nav>

@@ -9,7 +9,7 @@ const Footer = () => {
               © 2025 ProdStack. Built with precision by Ibrahim Adedeji.
             </p>
             <p className="text-red-400 font-medium mt-1">
-              🚀 Built with love for product managers.
+              Built with love for product managers.
             </p>
           </div>
           
