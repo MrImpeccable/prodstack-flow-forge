@@ -48,7 +48,7 @@ const Contact = () => {
                   <div className="font-semibold font-heading text-gray-900 dark:text-white">Twitter</div>
                   <div className="text-sm text-gray-600 dark:text-gray-400">@prodstack</div>
                 </div>
-              </div>
+              </a>
             </div>
           </div>
         </div>
