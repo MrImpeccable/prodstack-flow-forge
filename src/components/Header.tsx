@@ -8,10 +8,10 @@ const Header = () => {
 
   return (
     <header className="sticky top-0 z-50 bg-white/80 dark:bg-gray-900/80 backdrop-blur-sm border-b border-gray-100 dark:border-gray-800">
-      <div className="container mx-auto px-6 py-3">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center space-x-4">
-            <a href="/" className="flex items-center space-x-3">
+      <div className="container mx-auto px-6 py-2">
+        <div className="flex items-center justify-between h-12">
+          <div className="flex items-center">
+            <a href="/" className="flex items-center space-x-5">
               <img 
                 src="/lovable-uploads/3b4d22fa-d92b-49a4-9d92-263e24102342.png" 
                 alt="ProdStack Logo" 
