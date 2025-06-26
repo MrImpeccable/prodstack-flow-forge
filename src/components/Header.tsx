@@ -8,14 +8,19 @@ const Header = () => {
 
   return (
     <header className="sticky top-0 z-50 bg-white/80 dark:bg-gray-900/80 backdrop-blur-sm border-b border-gray-100 dark:border-gray-800">
-      <div className="container mx-auto px-6 py-4">
+      <div className="container mx-auto px-6 py-3">
         <div className="flex items-center justify-between">
-          <div className="flex items-center space-x-3">
-            <img 
-              src="/lovable-uploads/3b4d22fa-d92b-49a4-9d92-263e24102342.png" 
-              alt="ProdStack Logo" 
-              className="h-auto w-32 md:w-44"
-            />
+          <div className="flex items-center space-x-4">
+            <a href="/" className="flex items-center space-x-3">
+              <img 
+                src="/lovable-uploads/3b4d22fa-d92b-49a4-9d92-263e24102342.png" 
+                alt="ProdStack Logo" 
+                className="h-auto w-[150px]"
+              />
+              <span className="text-xl font-semibold font-heading text-gray-900 dark:text-white hover:text-red-600 dark:hover:text-red-400 transition-colors px-2 py-1 rounded hover:bg-gray-50 dark:hover:bg-gray-800">
+                ProdStack
+              </span>
+            </a>
           </div>
 
           {/* Desktop Navigation */}
