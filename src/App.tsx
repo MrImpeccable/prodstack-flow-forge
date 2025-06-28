@@ -6,10 +6,14 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AuthProvider } from "@/contexts/AuthContext";
 import ProtectedRoute from "@/components/ProtectedRoute";
+import FeedbackButton from "@/components/FeedbackButton";
 import Index from "./pages/Index";
 import Auth from "./pages/Auth";
 import Dashboard from "./pages/Dashboard";
 import PersonaBuilder from "./pages/PersonaBuilder";
+import ProblemCanvas from "./pages/ProblemCanvas";
+import AIDocs from "./pages/AIDocs";
+import Feedback from "./pages/Feedback";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -24,6 +28,7 @@ const App = () => (
           <Routes>
             <Route path="/" element={<Index />} />
             <Route path="/auth" element={<Auth />} />
+            <Route path="/feedback" element={<Feedback />} />
             <Route path="/dashboard" element={
               <ProtectedRoute>
                 <Dashboard />
@@ -34,9 +39,20 @@ const App = () => (
                 <PersonaBuilder />
               </ProtectedRoute>
             } />
+            <Route path="/workspace/:workspaceId/problem-canvas" element={
+              <ProtectedRoute>
+                <ProblemCanvas />
+              </ProtectedRoute>
+            } />
+            <Route path="/workspace/:workspaceId/ai-docs" element={
+              <ProtectedRoute>
+                <AIDocs />
+              </ProtectedRoute>
+            } />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
           </Routes>
+          <FeedbackButton />
         </BrowserRouter>
       </TooltipProvider>
     </AuthProvider>

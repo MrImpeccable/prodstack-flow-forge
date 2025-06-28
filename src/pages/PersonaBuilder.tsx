@@ -6,7 +6,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { ArrowLeft, Plus, X, Save } from 'lucide-react';
+import { ArrowLeft, Plus, X, Save, Download, FileText, Image } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 
@@ -206,6 +206,139 @@ const PersonaBuilder = () => {
     </div>
   );
 
+  const exportPersonaAsPDF = (personaToExport: Persona) => {
+    const content = `
+PERSONA CARD
+============
+
+Name: ${personaToExport.name}
+Age: ${personaToExport.age || 'Not specified'}
+Role: ${personaToExport.role || 'Not specified'}
+
+Bio:
+${personaToExport.bio || 'No bio provided'}
+
+Goals:
+${personaToExport.goals.map(goal => `• ${goal}`).join('\n')}
+
+Frustrations:
+${personaToExport.frustrations.map(frustration => `• ${frustration}`).join('\n')}
+
+Tools Used:
+${personaToExport.tools.map(tool => `• ${tool}`).join('\n')}
+
+Generated on: ${new Date().toLocaleDateString()}
+    `;
+
+    const blob = new Blob([content], { type: 'text/plain' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `persona-${personaToExport.name.replace(/\s+/g, '-').toLowerCase()}.txt`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+
+    toast({
+      title: 'Success',
+      description: 'Persona exported successfully',
+    });
+  };
+
+  const exportPersonaAsImage = (personaToExport: Persona) => {
+    // Create a canvas element to draw the persona card
+    const canvas = document.createElement('canvas');
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+
+    // Set canvas size
+    canvas.width = 800;
+    canvas.height = 600;
+
+    // Background
+    ctx.fillStyle = '#ffffff';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+    // Border
+    ctx.strokeStyle = '#e5e7eb';
+    ctx.lineWidth = 2;
+    ctx.strokeRect(20, 20, canvas.width - 40, canvas.height - 40);
+
+    // Title
+    ctx.fillStyle = '#1f2937';
+    ctx.font = 'bold 32px Arial';
+    ctx.fillText('PERSONA CARD', 50, 80);
+
+    // Name
+    ctx.font = 'bold 28px Arial';
+    ctx.fillStyle = '#dc2626';
+    ctx.fillText(personaToExport.name, 50, 130);
+
+    // Role and Age
+    ctx.font = '20px Arial';
+    ctx.fillStyle = '#6b7280';
+    ctx.fillText(`${personaToExport.role || 'Role not specified'} | Age: ${personaToExport.age || 'Not specified'}`, 50, 160);
+
+    // Bio
+    if (personaToExport.bio) {
+      ctx.font = '16px Arial';
+      ctx.fillStyle = '#374151';
+      const bioLines = personaToExport.bio.match(/.{1,80}(\s|$)/g) || [personaToExport.bio];
+      bioLines.forEach((line, index) => {
+        ctx.fillText(line.trim(), 50, 200 + (index * 20));
+      });
+    }
+
+    // Goals
+    ctx.font = 'bold 18px Arial';
+    ctx.fillStyle = '#059669';
+    ctx.fillText('Goals:', 50, 280);
+    ctx.font = '16px Arial';
+    ctx.fillStyle = '#374151';
+    personaToExport.goals.slice(0, 4).forEach((goal, index) => {
+      ctx.fillText(`• ${goal.substring(0, 60)}${goal.length > 60 ? '...' : ''}`, 70, 305 + (index * 20));
+    });
+
+    // Frustrations
+    ctx.font = 'bold 18px Arial';
+    ctx.fillStyle = '#dc2626';
+    ctx.fillText('Frustrations:', 50, 410);
+    ctx.font = '16px Arial';
+    ctx.fillStyle = '#374151';
+    personaToExport.frustrations.slice(0, 4).forEach((frustration, index) => {
+      ctx.fillText(`• ${frustration.substring(0, 60)}${frustration.length > 60 ? '...' : ''}`, 70, 435 + (index * 20));
+    });
+
+    // Tools
+    ctx.font = 'bold 18px Arial';
+    ctx.fillStyle = '#7c3aed';
+    ctx.fillText('Tools:', 50, 540);
+    ctx.font = '16px Arial';
+    ctx.fillStyle = '#374151';
+    const toolsText = personaToExport.tools.join(', ');
+    ctx.fillText(toolsText.substring(0, 80) + (toolsText.length > 80 ? '...' : ''), 70, 565);
+
+    // Convert to blob and download
+    canvas.toBlob((blob) => {
+      if (blob) {
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `persona-${personaToExport.name.replace(/\s+/g, '-').toLowerCase()}.png`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+
+        toast({
+          title: 'Success',
+          description: 'Persona exported as image successfully',
+        });
+      }
+    }, 'image/png');
+  };
+
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
       <header className="bg-white dark:bg-gray-800 shadow-sm border-b">
@@ -322,13 +455,31 @@ const PersonaBuilder = () => {
                   <CardContent className="p-4">
                     <div className="flex justify-between items-start mb-2">
                       <h4 className="font-semibold text-lg">{p.name}</h4>
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() => editPersona(p)}
-                      >
-                        Edit
-                      </Button>
+                      <div className="flex gap-2">
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => editPersona(p)}
+                        >
+                          Edit
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => exportPersonaAsPDF(p)}
+                        >
+                          <FileText className="h-3 w-3 mr-1" />
+                          PDF
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => exportPersonaAsImage(p)}
+                        >
+                          <Image className="h-3 w-3 mr-1" />
+                          PNG
+                        </Button>
+                      </div>
                     </div>
                     {p.role && <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">{p.role}</p>}
                     {p.age && <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">Age: {p.age}</p>}
