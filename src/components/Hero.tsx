@@ -1,8 +1,11 @@
 
 import { Button } from "@/components/ui/button";
 import { ArrowRight } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 
 const Hero = () => {
+  const navigate = useNavigate();
+
   return (
     <section className="pt-8 pb-16 md:pt-10 md:pb-20 bg-gradient-to-br from-gray-50 to-white dark:from-gray-900 dark:to-gray-800">
       <div className="container mx-auto px-4">
@@ -24,11 +27,20 @@ const Hero = () => {
             </div>
 
             <div className="flex flex-col sm:flex-row gap-4">
-              <Button size="lg" className="bg-red-600 hover:bg-red-700 text-white font-semibold px-8 py-4 text-lg">
+              <Button 
+                size="lg" 
+                className="bg-red-600 hover:bg-red-700 text-white font-semibold px-8 py-4 text-lg"
+                onClick={() => navigate('/auth')}
+              >
                 Try the Persona Builder
                 <ArrowRight className="ml-2 h-5 w-5" />
               </Button>
-              <Button size="lg" variant="outline" className="border-red-600 text-red-600 hover:bg-red-50 dark:hover:bg-red-950 px-8 py-4 text-lg font-semibold">
+              <Button 
+                size="lg" 
+                variant="outline" 
+                className="border-red-600 text-red-600 hover:bg-red-50 dark:hover:bg-red-950 px-8 py-4 text-lg font-semibold"
+                onClick={() => navigate('/auth')}
+              >
                 Explore the Demo
               </Button>
             </div>

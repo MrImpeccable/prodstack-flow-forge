@@ -2,9 +2,11 @@
 import { Button } from "@/components/ui/button";
 import { Menu, X } from "lucide-react";
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 
 const Header = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const navigate = useNavigate();
 
   return (
     <header className="sticky top-0 z-50 bg-white/80 dark:bg-gray-900/80 backdrop-blur-sm border-b border-gray-100 dark:border-gray-800">
@@ -37,7 +39,10 @@ const Header = () => {
             <a href="#contact" className="text-gray-600 hover:text-red-600 dark:text-gray-300 dark:hover:text-red-400 transition-colors font-medium">
               Contact
             </a>
-            <Button className="bg-red-600 hover:bg-red-700 text-white font-semibold">
+            <Button 
+              className="bg-red-600 hover:bg-red-700 text-white font-semibold"
+              onClick={() => navigate('/auth')}
+            >
               Try the Persona Builder
             </Button>
           </nav>
@@ -67,7 +72,10 @@ const Header = () => {
               <a href="#contact" className="text-gray-600 hover:text-red-600 dark:text-gray-300 dark:hover:text-red-400 transition-colors font-medium">
                 Contact
               </a>
-              <Button className="bg-red-600 hover:bg-red-700 text-white w-full font-semibold">
+              <Button 
+                className="bg-red-600 hover:bg-red-700 text-white w-full font-semibold"
+                onClick={() => navigate('/auth')}
+              >
                 Try the Persona Builder
               </Button>
             </div>
