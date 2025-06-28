@@ -1,9 +1,8 @@
-
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Plus, Users, Canvas, FileText, MessageSquare } from 'lucide-react';
+import { Plus, Users, LayoutGrid, FileText, MessageSquare } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useNavigate } from 'react-router-dom';
 import { useToast } from '@/hooks/use-toast';
@@ -170,7 +169,7 @@ const Dashboard = () => {
                         onClick={() => navigate(`/workspace/${workspace.id}/problem-canvas`)}
                         className="text-xs"
                       >
-                        <Canvas className="h-3 w-3 mr-1" />
+                        <LayoutGrid className="h-3 w-3 mr-1" />
                         Canvas
                       </Button>
                       <Button
