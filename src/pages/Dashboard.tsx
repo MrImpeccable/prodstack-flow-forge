@@ -7,6 +7,7 @@ import { Plus, Users, LayoutGrid, FileText } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useNavigate } from 'react-router-dom';
 import { useToast } from '@/hooks/use-toast';
+import UserDropdown from '@/components/UserDropdown';
 
 interface Workspace {
   id: string;
@@ -16,7 +17,7 @@ interface Workspace {
 }
 
 const Dashboard = () => {
-  const { user, signOut } = useAuth();
+  const { user, loading: authLoading } = useAuth();
   const [workspaces, setWorkspaces] = useState<Workspace[]>([]);
   const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
@@ -77,16 +78,11 @@ const Dashboard = () => {
     }
   };
 
-  const handleSignOut = async () => {
-    await signOut();
-    navigate('/auth');
-  };
-
   const handleLogoClick = () => {
     navigate('/');
   };
 
-  if (loading) {
+  if (authLoading || loading) {
     return (
       <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex items-center justify-center">
         <div className="text-center">
@@ -115,37 +111,35 @@ const Dashboard = () => {
                 <span className="text-red-600">Prod</span>Stack
               </h1>
             </button>
-            <div className="flex items-center space-x-4">
-              <span className="text-sm text-gray-500 dark:text-gray-400">
-                Welcome, {user?.email}
-              </span>
-              <Button onClick={handleSignOut} variant="outline">
-                Sign Out
-              </Button>
-            </div>
+            <UserDropdown />
           </div>
         </div>
       </header>
 
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="mb-8">
-          <div className="flex justify-between items-center mb-6">
-            <h2 className="text-3xl font-bold text-gray-900 dark:text-white">Your Workspaces</h2>
-            <Button onClick={createWorkspace} className="bg-red-600 hover:bg-red-700">
+          <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4 mb-8">
+            <div>
+              <h2 className="text-3xl font-bold text-gray-900 dark:text-white mb-2">Your Workspaces</h2>
+              <p className="text-gray-600 dark:text-gray-400">Manage your product discovery projects</p>
+            </div>
+            <Button onClick={createWorkspace} className="bg-red-600 hover:bg-red-700 shadow-lg">
               <Plus className="h-4 w-4 mr-2" />
               New Workspace
             </Button>
           </div>
 
           {workspaces.length === 0 ? (
-            <Card className="text-center py-12">
+            <Card className="text-center py-16 shadow-sm">
               <CardContent>
-                <div className="text-gray-500 dark:text-gray-400 mb-4">
-                  <FileText className="h-12 w-12 mx-auto mb-4" />
-                  <h3 className="text-xl font-semibold mb-2">No workspaces yet</h3>
-                  <p>Create your first workspace to start building user personas and problem canvases.</p>
+                <div className="text-gray-500 dark:text-gray-400 mb-6">
+                  <FileText className="h-16 w-16 mx-auto mb-4 text-gray-300" />
+                  <h3 className="text-xl font-semibold mb-2 text-gray-700 dark:text-gray-300">No workspaces yet</h3>
+                  <p className="text-gray-500 dark:text-gray-400 max-w-md mx-auto">
+                    Create your first workspace to start building user personas and problem canvases for your product discovery.
+                  </p>
                 </div>
-                <Button onClick={createWorkspace} className="bg-red-600 hover:bg-red-700">
+                <Button onClick={createWorkspace} className="bg-red-600 hover:bg-red-700 shadow-lg">
                   <Plus className="h-4 w-4 mr-2" />
                   Create Your First Workspace
                 </Button>
@@ -154,13 +148,13 @@ const Dashboard = () => {
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {workspaces.map((workspace) => (
-                <Card key={workspace.id} className="hover:shadow-lg transition-shadow cursor-pointer">
-                  <CardHeader>
-                    <CardTitle className="flex items-center justify-between">
-                      {workspace.name}
-                      <FileText className="h-5 w-5 text-gray-400" />
+                <Card key={workspace.id} className="hover:shadow-lg transition-all duration-200 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700">
+                  <CardHeader className="pb-3">
+                    <CardTitle className="flex items-center justify-between text-lg">
+                      <span className="truncate">{workspace.name}</span>
+                      <FileText className="h-5 w-5 text-gray-400 flex-shrink-0" />
                     </CardTitle>
-                    <CardDescription>
+                    <CardDescription className="text-sm">
                       {workspace.description || 'No description'}
                     </CardDescription>
                   </CardHeader>
@@ -173,7 +167,7 @@ const Dashboard = () => {
                         size="sm"
                         variant="outline"
                         onClick={() => navigate(`/workspace/${workspace.id}/persona-builder`)}
-                        className="text-xs"
+                        className="text-xs hover:bg-red-50 hover:border-red-200 hover:text-red-700"
                       >
                         <Users className="h-3 w-3 mr-1" />
                         Personas
@@ -182,7 +176,7 @@ const Dashboard = () => {
                         size="sm"
                         variant="outline"
                         onClick={() => navigate(`/workspace/${workspace.id}/problem-canvas`)}
-                        className="text-xs"
+                        className="text-xs hover:bg-red-50 hover:border-red-200 hover:text-red-700"
                       >
                         <LayoutGrid className="h-3 w-3 mr-1" />
                         Canvas
@@ -191,7 +185,7 @@ const Dashboard = () => {
                         size="sm"
                         variant="outline"
                         onClick={() => navigate(`/workspace/${workspace.id}/ai-docs`)}
-                        className="text-xs"
+                        className="text-xs hover:bg-red-50 hover:border-red-200 hover:text-red-700"
                       >
                         <FileText className="h-3 w-3 mr-1" />
                         AI Docs
