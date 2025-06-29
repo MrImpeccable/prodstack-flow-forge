@@ -27,7 +27,7 @@ const About = () => {
                 <img 
                   src="/lovable-uploads/3b4d22fa-d92b-49a4-9d92-263e24102342.png" 
                   alt="ProdStack Logo - Visual identity reflecting clarity and structure" 
-                  className="h-16 w-auto mx-auto mb-6"
+                  className="h-auto w-[120px] mx-auto mb-6"
                 />
                 <p className="text-center text-gray-600 dark:text-gray-400">
                   Our visual identity reflects the clarity and structure we bring to product management workflows.

@@ -1,8 +1,9 @@
+
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Plus, Users, LayoutGrid, FileText, MessageSquare } from 'lucide-react';
+import { Plus, Users, LayoutGrid, FileText } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useNavigate } from 'react-router-dom';
 import { useToast } from '@/hooks/use-toast';
@@ -81,6 +82,10 @@ const Dashboard = () => {
     navigate('/auth');
   };
 
+  const handleLogoClick = () => {
+    navigate('/');
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex items-center justify-center">
@@ -97,17 +102,27 @@ const Dashboard = () => {
       <header className="bg-white dark:bg-gray-800 shadow-sm border-b">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center py-4">
-            <div className="flex items-center space-x-4">
+            <button 
+              onClick={handleLogoClick}
+              className="flex items-center space-x-4 hover:opacity-80 transition-opacity"
+            >
+              <img 
+                src="/lovable-uploads/3b4d22fa-d92b-49a4-9d92-263e24102342.png" 
+                alt="ProdStack Logo" 
+                className="h-auto w-[140px] md:w-[100px] sm:w-[80px]"
+              />
               <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
                 <span className="text-red-600">Prod</span>Stack
               </h1>
+            </button>
+            <div className="flex items-center space-x-4">
               <span className="text-sm text-gray-500 dark:text-gray-400">
                 Welcome, {user?.email}
               </span>
+              <Button onClick={handleSignOut} variant="outline">
+                Sign Out
+              </Button>
             </div>
-            <Button onClick={handleSignOut} variant="outline">
-              Sign Out
-            </Button>
           </div>
         </div>
       </header>
@@ -153,7 +168,7 @@ const Dashboard = () => {
                     <div className="flex justify-between items-center text-sm text-gray-500 dark:text-gray-400 mb-4">
                       <span>Created {new Date(workspace.created_at).toLocaleDateString()}</span>
                     </div>
-                    <div className="grid grid-cols-2 gap-2">
+                    <div className="grid grid-cols-3 gap-2">
                       <Button
                         size="sm"
                         variant="outline"
@@ -180,15 +195,6 @@ const Dashboard = () => {
                       >
                         <FileText className="h-3 w-3 mr-1" />
                         AI Docs
-                      </Button>
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() => navigate(`/feedback`)}
-                        className="text-xs"
-                      >
-                        <MessageSquare className="h-3 w-3 mr-1" />
-                        Feedback
                       </Button>
                     </div>
                   </CardContent>
