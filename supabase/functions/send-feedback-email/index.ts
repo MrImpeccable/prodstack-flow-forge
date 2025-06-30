@@ -3,7 +3,7 @@ import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { Resend } from "npm:resend@2.0.0";
 
 const resend = new Resend(Deno.env.get("RESEND_API_KEY"));
-const adminEmail = Deno.env.get("ADMIN_EMAIL");
+const adminEmail = Deno.env.get("ADMIN_EMAIL") || "admin@prodstack.app";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -16,6 +16,7 @@ interface FeedbackEmailRequest {
   userEmail?: string;
   userAgent?: string;
   pageUrl?: string;
+  imageUrl?: string;
 }
 
 const handler = async (req: Request): Promise<Response> => {
@@ -25,15 +26,11 @@ const handler = async (req: Request): Promise<Response> => {
   }
 
   try {
-    if (!adminEmail) {
-      throw new Error("Admin email not configured");
-    }
-
     if (!Deno.env.get("RESEND_API_KEY")) {
       throw new Error("Resend API key not configured");
     }
 
-    const { message, userEmail, userAgent, pageUrl }: FeedbackEmailRequest = await req.json();
+    const { message, userEmail, userAgent, pageUrl, imageUrl }: FeedbackEmailRequest = await req.json();
 
     if (!message || message.trim().length === 0) {
       throw new Error("Feedback message is required");
@@ -51,6 +48,13 @@ const handler = async (req: Request): Promise<Response> => {
             <h3 style="margin-top: 0; color: #374151;">Feedback Message:</h3>
             <p style="line-height: 1.6; color: #4b5563;">${message}</p>
           </div>
+          
+          ${imageUrl ? `
+          <div style="margin: 20px 0;">
+            <h4 style="color: #374151;">Attached Screenshot:</h4>
+            <img src="${imageUrl}" alt="User screenshot" style="max-width: 100%; height: auto; border-radius: 8px; border: 1px solid #e5e7eb;" />
+          </div>
+          ` : ''}
           
           <div style="border-top: 1px solid #e5e7eb; padding-top: 20px; color: #6b7280; font-size: 14px;">
             <h4 style="margin-top: 0; color: #374151;">Additional Information:</h4>

@@ -20,12 +20,34 @@ serve(async (req) => {
     console.log('Generate documents request:', { documentType, personas: personas?.length, canvas: canvas?.name });
 
     // Validate input
+    if (!documentType) {
+      return new Response(JSON.stringify({ 
+        error: 'Document type is required',
+        content: 'Please specify a document type (prd or user_stories)'
+      }), {
+        status: 400,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
     if (!personas || personas.length === 0) {
-      throw new Error('At least one persona is required');
+      return new Response(JSON.stringify({ 
+        error: 'At least one persona is required',
+        content: 'Please create at least one persona before generating documents'
+      }), {
+        status: 400,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
     }
 
     if (!openAIApiKey) {
-      throw new Error('OpenAI API key not configured');
+      return new Response(JSON.stringify({ 
+        error: 'OpenAI API key not configured',
+        content: 'The OpenAI API key needs to be configured to generate documents. Please contact the administrator.'
+      }), {
+        status: 500,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
     }
 
     let systemPrompt = '';
@@ -38,8 +60,8 @@ serve(async (req) => {
 
 PERSONAS:
 ${personas.map((p: any) => `
-- Name: ${p.name}
-- Role: ${p.role}
+- Name: ${p.name || 'Unnamed Persona'}
+- Role: ${p.role || 'Not specified'}
 - Goals: ${p.goals?.join(', ') || 'None specified'}
 - Frustrations: ${p.frustrations?.join(', ') || 'None specified'}
 - Tools: ${p.tools?.join(', ') || 'None specified'}
@@ -50,7 +72,7 @@ PROBLEM SPACE CANVAS:
 - Pain Points: ${canvas.pain_points?.join(', ') || 'None specified'}
 - Current Behaviors: ${canvas.current_behaviors?.join(', ') || 'None specified'}
 - Opportunities: ${canvas.opportunities?.join(', ') || 'None specified'}
-` : ''}
+` : 'No problem canvas data available.'}
 
 Please create a comprehensive PRD that addresses the personas' needs and the identified problems/opportunities.`;
     } else if (documentType === 'user_stories') {
@@ -60,8 +82,8 @@ Please create a comprehensive PRD that addresses the personas' needs and the ide
 
 PERSONAS:
 ${personas.map((p: any) => `
-- Name: ${p.name}
-- Role: ${p.role}
+- Name: ${p.name || 'Unnamed Persona'}
+- Role: ${p.role || 'Not specified'}
 - Goals: ${p.goals?.join(', ') || 'None specified'}
 - Frustrations: ${p.frustrations?.join(', ') || 'None specified'}
 `).join('\n')}
@@ -70,9 +92,17 @@ ${canvas ? `
 PROBLEM SPACE CANVAS:
 - Pain Points: ${canvas.pain_points?.join(', ') || 'None specified'}
 - Opportunities: ${canvas.opportunities?.join(', ') || 'None specified'}
-` : ''}
+` : 'No problem canvas data available.'}
 
 Create 8-12 user stories that address the personas' goals and frustrations. Each story should follow the format: "As a [persona], I want [action], so that [benefit]" and include acceptance criteria.`;
+    } else {
+      return new Response(JSON.stringify({ 
+        error: 'Invalid document type',
+        content: 'Please specify either "prd" or "user_stories" as the document type'
+      }), {
+        status: 400,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
     }
 
     console.log('Making OpenAI API request...');
@@ -97,31 +127,55 @@ Create 8-12 user stories that address the personas' goals and frustrations. Each
     if (!response.ok) {
       const errorText = await response.text();
       console.error('OpenAI API error:', errorText);
-      throw new Error(`OpenAI API error: ${response.status} - ${errorText}`);
+      return new Response(JSON.stringify({ 
+        error: `OpenAI API error: ${response.status}`,
+        content: 'There was an error generating the document. Please try again later.'
+      }), {
+        status: 500,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
     }
 
     const data = await response.json();
     
     if (!data.choices || data.choices.length === 0) {
-      throw new Error('No response from OpenAI API');
+      return new Response(JSON.stringify({ 
+        error: 'No response from OpenAI API',
+        content: 'The AI service did not return a response. Please try again.'
+      }), {
+        status: 500,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
     }
 
     const content = data.choices[0]?.message?.content;
     
     if (!content) {
-      throw new Error('Empty response from OpenAI API');
+      return new Response(JSON.stringify({ 
+        error: 'Empty response from OpenAI API',
+        content: 'The AI service returned an empty response. Please try again.'
+      }), {
+        status: 500,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
     }
 
     console.log('Successfully generated content');
 
-    return new Response(JSON.stringify({ content }), {
+    return new Response(JSON.stringify({ 
+      content,
+      success: true,
+      message: 'Document generated successfully'
+    }), {
+      status: 200,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
   } catch (error) {
     console.error('Error in generate-documents function:', error);
     return new Response(JSON.stringify({ 
-      error: error.message || 'An unexpected error occurred',
-      details: error.stack 
+      error: 'Unexpected error occurred',
+      content: 'An unexpected error occurred while generating the document. Please try again.',
+      details: error.message
     }), {
       status: 500,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },

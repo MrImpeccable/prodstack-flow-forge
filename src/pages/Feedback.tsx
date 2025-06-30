@@ -3,19 +3,53 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { ArrowLeft, Send, CheckCircle } from 'lucide-react';
+import { ArrowLeft, Send, CheckCircle, Upload, X } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 
 const Feedback = () => {
   const [message, setMessage] = useState('');
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSubmitted, setIsSubmitted] = useState(false);
   const navigate = useNavigate();
   const { toast } = useToast();
   const { user } = useAuth();
+
+  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    // Check file size (max 2MB)
+    if (file.size > 2 * 1024 * 1024) {
+      toast({
+        title: 'File too large',
+        description: 'Please select an image smaller than 2MB.',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    // Check file type
+    if (!file.type.startsWith('image/') || (!file.type.includes('jpeg') && !file.type.includes('jpg') && !file.type.includes('png'))) {
+      toast({
+        title: 'Invalid file format',
+        description: 'Please select a JPG or PNG image.',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    setSelectedFile(file);
+  };
+
+  const removeFile = () => {
+    setSelectedFile(null);
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -32,6 +66,28 @@ const Feedback = () => {
     setIsSubmitting(true);
 
     try {
+      let imageUrl = null;
+
+      // Upload image if selected
+      if (selectedFile) {
+        const fileExt = selectedFile.name.split('.').pop();
+        const fileName = `${Date.now()}.${fileExt}`;
+        
+        const { data: uploadData, error: uploadError } = await supabase.storage
+          .from('feedback-images')
+          .upload(fileName, selectedFile);
+
+        if (uploadError) {
+          console.error('Error uploading image:', uploadError);
+          // Continue without image if upload fails
+        } else {
+          const { data: urlData } = supabase.storage
+            .from('feedback-images')
+            .getPublicUrl(fileName);
+          imageUrl = urlData.publicUrl;
+        }
+      }
+
       // Save feedback to database
       const { error: dbError } = await supabase
         .from('feedback')
@@ -51,6 +107,7 @@ const Feedback = () => {
           userEmail: user?.email || null,
           userAgent: navigator.userAgent,
           pageUrl: window.location.href,
+          imageUrl: imageUrl,
         }
       });
 
@@ -146,9 +203,9 @@ const Feedback = () => {
           <CardContent>
             <form onSubmit={handleSubmit} className="space-y-6">
               <div>
-                <label htmlFor="feedback" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                <Label htmlFor="feedback" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                   Your Feedback *
-                </label>
+                </Label>
                 <Textarea
                   id="feedback"
                   value={message}
@@ -158,6 +215,61 @@ const Feedback = () => {
                   className="w-full"
                   required
                 />
+              </div>
+
+              <div>
+                <Label htmlFor="image" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  Attach Screenshot (Optional)
+                </Label>
+                <div className="space-y-3">
+                  {!selectedFile ? (
+                    <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center">
+                      <Upload className="h-8 w-8 text-gray-400 mx-auto mb-2" />
+                      <div className="text-sm text-gray-600 mb-2">
+                        Upload an image to help us understand your feedback better
+                      </div>
+                      <Input
+                        id="image"
+                        type="file"
+                        accept="image/jpeg,image/jpg,image/png"
+                        onChange={handleFileSelect}
+                        className="max-w-xs mx-auto"
+                      />
+                      <p className="text-xs text-gray-500 mt-2">
+                        JPG or PNG, max 2MB
+                      </p>
+                    </div>
+                  ) : (
+                    <div className="border border-gray-300 rounded-lg p-4 bg-gray-50">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center space-x-3">
+                          <div className="flex-shrink-0">
+                            <img
+                              src={URL.createObjectURL(selectedFile)}
+                              alt="Preview"
+                              className="h-12 w-12 object-cover rounded"
+                            />
+                          </div>
+                          <div>
+                            <p className="text-sm font-medium text-gray-900">{selectedFile.name}</p>
+                            <p className="text-xs text-gray-500">
+                              {(selectedFile.size / 1024 / 1024).toFixed(2)} MB
+                            </p>
+                          </div>
+                        </div>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          onClick={removeFile}
+                          className="text-red-600 hover:text-red-700"
+                        >
+                          <X className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    </div>
+                  )}
+                </div>
               </div>
               
               <div className="flex justify-end space-x-4">
