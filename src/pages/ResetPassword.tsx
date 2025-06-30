@@ -20,7 +20,7 @@ const ResetPassword = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
 
-  useEffect() => {
+  useEffect(() => {
     // Check if we have the required tokens from the URL
     const accessToken = searchParams.get('access_token');
     const refreshToken = searchParams.get('refresh_token');
