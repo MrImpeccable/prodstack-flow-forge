@@ -8,6 +8,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { ArrowLeft, FileText, Download, Wand2, Edit } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
+import { generateDocumentWordDoc, downloadFile } from '@/utils/documentExports';
 
 interface Persona {
   id: string;
@@ -100,7 +101,14 @@ const AIDocs = () => {
         }
       });
 
-      if (error) throw error;
+      if (error) {
+        console.error('Supabase function error:', error);
+        throw new Error(error.message || 'Failed to generate document');
+      }
+
+      if (!data || !data.content) {
+        throw new Error('No content received from AI service');
+      }
 
       setGeneratedContent(data.content);
       setEditableContent(data.content);
@@ -113,7 +121,7 @@ const AIDocs = () => {
       console.error('Error generating document:', error);
       toast({
         title: 'Error',
-        description: 'Failed to generate document',
+        description: error.message || 'Failed to generate document',
         variant: 'destructive',
       });
     } finally {
@@ -152,17 +160,26 @@ const AIDocs = () => {
     }
   };
 
-  const exportAsPDF = () => {
-    const content = isEditing ? editableContent : generatedContent;
-    const blob = new Blob([content], { type: 'text/plain' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `${documentType}-${Date.now()}.txt`;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
+  const exportAsWord = async () => {
+    try {
+      const content = isEditing ? editableContent : generatedContent;
+      const title = `${documentType.toUpperCase()} - ${new Date().toLocaleDateString()}`;
+      
+      const blob = await generateDocumentWordDoc(title, content);
+      downloadFile(blob, `${documentType}-${Date.now()}.docx`);
+      
+      toast({
+        title: 'Success',
+        description: 'Document exported as Word file successfully',
+      });
+    } catch (error) {
+      console.error('Error exporting as Word:', error);
+      toast({
+        title: 'Error',
+        description: 'Failed to export document as Word file',
+        variant: 'destructive',
+      });
+    }
   };
 
   const exportAsMarkdown = () => {
@@ -324,18 +341,18 @@ const AIDocs = () => {
                       <Button
                         size="sm"
                         variant="outline"
-                        onClick={exportAsMarkdown}
+                        onClick={exportAsWord}
                       >
                         <Download className="h-4 w-4 mr-1" />
-                        MD
+                        Word
                       </Button>
                       <Button
                         size="sm"
                         variant="outline"
-                        onClick={exportAsPDF}
+                        onClick={exportAsMarkdown}
                       >
                         <Download className="h-4 w-4 mr-1" />
-                        TXT
+                        MD
                       </Button>
                     </div>
                   )}

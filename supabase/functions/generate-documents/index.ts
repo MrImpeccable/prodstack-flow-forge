@@ -17,6 +17,17 @@ serve(async (req) => {
   try {
     const { documentType, personas, canvas } = await req.json();
 
+    console.log('Generate documents request:', { documentType, personas: personas?.length, canvas: canvas?.name });
+
+    // Validate input
+    if (!personas || personas.length === 0) {
+      throw new Error('At least one persona is required');
+    }
+
+    if (!openAIApiKey) {
+      throw new Error('OpenAI API key not configured');
+    }
+
     let systemPrompt = '';
     let userPrompt = '';
 
@@ -29,9 +40,9 @@ PERSONAS:
 ${personas.map((p: any) => `
 - Name: ${p.name}
 - Role: ${p.role}
-- Goals: ${p.goals.join(', ')}
-- Frustrations: ${p.frustrations.join(', ')}
-- Tools: ${p.tools.join(', ')}
+- Goals: ${p.goals?.join(', ') || 'None specified'}
+- Frustrations: ${p.frustrations?.join(', ') || 'None specified'}
+- Tools: ${p.tools?.join(', ') || 'None specified'}
 `).join('\n')}
 
 ${canvas ? `
@@ -51,8 +62,8 @@ PERSONAS:
 ${personas.map((p: any) => `
 - Name: ${p.name}
 - Role: ${p.role}
-- Goals: ${p.goals.join(', ')}
-- Frustrations: ${p.frustrations.join(', ')}
+- Goals: ${p.goals?.join(', ') || 'None specified'}
+- Frustrations: ${p.frustrations?.join(', ') || 'None specified'}
 `).join('\n')}
 
 ${canvas ? `
@@ -64,6 +75,8 @@ PROBLEM SPACE CANVAS:
 Create 8-12 user stories that address the personas' goals and frustrations. Each story should follow the format: "As a [persona], I want [action], so that [benefit]" and include acceptance criteria.`;
     }
 
+    console.log('Making OpenAI API request...');
+    
     const response = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
       headers: {
@@ -81,15 +94,35 @@ Create 8-12 user stories that address the personas' goals and frustrations. Each
       }),
     });
 
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error('OpenAI API error:', errorText);
+      throw new Error(`OpenAI API error: ${response.status} - ${errorText}`);
+    }
+
     const data = await response.json();
-    const content = data.choices[0].message.content;
+    
+    if (!data.choices || data.choices.length === 0) {
+      throw new Error('No response from OpenAI API');
+    }
+
+    const content = data.choices[0]?.message?.content;
+    
+    if (!content) {
+      throw new Error('Empty response from OpenAI API');
+    }
+
+    console.log('Successfully generated content');
 
     return new Response(JSON.stringify({ content }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
   } catch (error) {
     console.error('Error in generate-documents function:', error);
-    return new Response(JSON.stringify({ error: error.message }), {
+    return new Response(JSON.stringify({ 
+      error: error.message || 'An unexpected error occurred',
+      details: error.stack 
+    }), {
       status: 500,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });

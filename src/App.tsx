@@ -14,6 +14,7 @@ import PersonaBuilder from "./pages/PersonaBuilder";
 import ProblemCanvas from "./pages/ProblemCanvas";
 import AIDocs from "./pages/AIDocs";
 import Feedback from "./pages/Feedback";
+import ResetPassword from "./pages/ResetPassword";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -28,6 +29,7 @@ const App = () => (
           <Routes>
             <Route path="/" element={<Index />} />
             <Route path="/auth" element={<Auth />} />
+            <Route path="/reset-password" element={<ResetPassword />} />
             <Route path="/feedback" element={<Feedback />} />
             <Route path="/dashboard" element={
               <ProtectedRoute>
