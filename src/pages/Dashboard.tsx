@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
@@ -21,7 +20,7 @@ interface Workspace {
 }
 
 const Dashboard = () => {
-  const { user, loading: authLoading } = useAuth();
+  const { user, profile, loading: authLoading } = useAuth();
   const [workspaces, setWorkspaces] = useState<Workspace[]>([]);
   const [loading, setLoading] = useState(true);
   const [editingWorkspace, setEditingWorkspace] = useState<Workspace | null>(null);
@@ -30,6 +29,11 @@ const Dashboard = () => {
   const [createForm, setCreateForm] = useState({ name: '', description: '' });
   const navigate = useNavigate();
   const { toast } = useToast();
+
+  const getFirstName = (fullName: string | null) => {
+    if (!fullName) return 'User';
+    return fullName.split(' ')[0];
+  };
 
   useEffect(() => {
     if (user) {
@@ -150,44 +154,54 @@ const Dashboard = () => {
 
   if (authLoading || loading) {
     return (
-      <div className="min-h-screen bg-white flex items-center justify-center">
+      <div className="min-h-screen bg-white dark:bg-gray-900 flex items-center justify-center">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-red-600 mx-auto"></div>
-          <p className="mt-4 text-gray-600">Loading...</p>
+          <p className="mt-4 text-gray-600 dark:text-gray-400">Loading...</p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-white">
-      <header className="bg-white border-b border-gray-200 shadow-sm">
+    <div className="min-h-screen bg-white dark:bg-gray-900">
+      <header className="bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800 shadow-sm">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center py-4">
-            <button 
-              onClick={handleLogoClick}
-              className="flex items-center space-x-4 hover:opacity-80 transition-opacity"
-            >
-              <img 
-                src="/lovable-uploads/3b4d22fa-d92b-49a4-9d92-263e24102342.png" 
-                alt="ProdStack Logo" 
-                className="h-auto w-[140px] md:w-[100px] sm:w-[80px]"
-              />
-              <h1 className="text-2xl font-bold text-gray-900">
-                <span className="text-red-600">Prod</span>Stack
-              </h1>
-            </button>
-            <UserDropdown />
+          <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center py-6 sm:py-4 gap-4 sm:gap-0">
+            <div className="flex flex-col sm:flex-row sm:items-center gap-4 sm:gap-4">
+              <button 
+                onClick={handleLogoClick}
+                className="flex items-center space-x-4 hover:opacity-80 transition-opacity self-start"
+              >
+                <img 
+                  src="/lovable-uploads/3b4d22fa-d92b-49a4-9d92-263e24102342.png" 
+                  alt="ProdStack Logo" 
+                  className="h-auto w-[100px] sm:w-[80px]"
+                />
+                <h1 className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white">
+                  <span className="text-red-600">Prod</span>Stack
+                </h1>
+              </button>
+            </div>
+            <div className="self-start sm:self-center">
+              <UserDropdown />
+            </div>
           </div>
         </div>
       </header>
 
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-12">
+        <div className="mb-8">
+          <h2 className="text-2xl sm:text-3xl font-medium text-gray-900 dark:text-white mb-2">
+            Welcome back, {getFirstName(profile?.full_name)}
+          </h2>
+        </div>
+
         <div className="mb-12">
           <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-6 mb-12">
             <div>
-              <h2 className="text-4xl font-bold text-gray-900 mb-3">Your Workspaces</h2>
-              <p className="text-gray-600 text-lg">Manage your product discovery projects</p>
+              <h3 className="text-3xl sm:text-4xl font-bold text-gray-900 dark:text-white mb-3">Your Workspaces</h3>
+              <p className="text-gray-600 dark:text-gray-400 text-lg">Manage your product discovery projects</p>
             </div>
             
             <Dialog open={showCreateDialog} onOpenChange={setShowCreateDialog}>
@@ -197,32 +211,32 @@ const Dashboard = () => {
                   New Workspace
                 </Button>
               </DialogTrigger>
-              <DialogContent className="bg-white border-gray-200">
+              <DialogContent className="bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700">
                 <DialogHeader>
-                  <DialogTitle className="text-xl text-gray-900">Create New Workspace</DialogTitle>
-                  <DialogDescription className="text-gray-600">
+                  <DialogTitle className="text-xl text-gray-900 dark:text-white">Create New Workspace</DialogTitle>
+                  <DialogDescription className="text-gray-600 dark:text-gray-400">
                     Create a new workspace to organize your product discovery work.
                   </DialogDescription>
                 </DialogHeader>
                 <div className="space-y-4">
                   <div>
-                    <Label htmlFor="name" className="text-gray-900">Name *</Label>
+                    <Label htmlFor="name" className="text-gray-900 dark:text-white">Name *</Label>
                     <Input
                       id="name"
                       value={createForm.name}
                       onChange={(e) => setCreateForm(prev => ({ ...prev, name: e.target.value }))}
                       placeholder="Enter workspace name..."
-                      className="bg-white border-gray-300 text-gray-900"
+                      className="bg-white dark:bg-gray-700 border-gray-300 dark:border-gray-600 text-gray-900 dark:text-white"
                     />
                   </div>
                   <div>
-                    <Label htmlFor="description" className="text-gray-900">Description</Label>
+                    <Label htmlFor="description" className="text-gray-900 dark:text-white">Description</Label>
                     <Textarea
                       id="description"
                       value={createForm.description}
                       onChange={(e) => setCreateForm(prev => ({ ...prev, description: e.target.value }))}
                       placeholder="Enter workspace description..."
-                      className="bg-white border-gray-300 text-gray-900"
+                      className="bg-white dark:bg-gray-700 border-gray-300 dark:border-gray-600 text-gray-900 dark:text-white"
                       rows={3}
                     />
                   </div>
@@ -240,12 +254,12 @@ const Dashboard = () => {
           </div>
 
           {workspaces.length === 0 ? (
-            <Card className="text-center py-20 bg-white border-gray-200 shadow-lg">
+            <Card className="text-center py-20 bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 shadow-lg">
               <CardContent>
-                <div className="text-gray-500 mb-8">
-                  <FileText className="h-20 w-20 mx-auto mb-6 text-gray-400" />
-                  <h3 className="text-2xl font-semibold mb-4 text-gray-900">No workspaces yet</h3>
-                  <p className="text-gray-600 max-w-md mx-auto text-lg">
+                <div className="text-gray-500 dark:text-gray-400 mb-8">
+                  <FileText className="h-20 w-20 mx-auto mb-6 text-gray-400 dark:text-gray-500" />
+                  <h3 className="text-2xl font-semibold mb-4 text-gray-900 dark:text-white">No workspaces yet</h3>
+                  <p className="text-gray-600 dark:text-gray-400 max-w-md mx-auto text-lg">
                     Create your first workspace to start building user personas and problem canvases for your product discovery.
                   </p>
                 </div>
@@ -263,7 +277,7 @@ const Dashboard = () => {
               {workspaces.map((workspace) => (
                 <Card 
                   key={workspace.id} 
-                  className="bg-white border-gray-200 hover:border-red-300 transition-all duration-300 shadow-lg hover:shadow-xl group"
+                  className="bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 hover:border-red-300 dark:hover:border-red-600 transition-all duration-300 shadow-lg hover:shadow-xl group"
                 >
                   <CardHeader className="pb-4">
                     <div className="flex items-start justify-between">
@@ -273,13 +287,13 @@ const Dashboard = () => {
                             <Input
                               value={editForm.name}
                               onChange={(e) => setEditForm(prev => ({ ...prev, name: e.target.value }))}
-                              className="bg-white border-gray-300 text-gray-900 font-semibold"
+                              className="bg-white dark:bg-gray-700 border-gray-300 dark:border-gray-600 text-gray-900 dark:text-white font-semibold"
                               placeholder="Workspace name"
                             />
                             <Textarea
                               value={editForm.description}
                               onChange={(e) => setEditForm(prev => ({ ...prev, description: e.target.value }))}
-                              className="bg-white border-gray-300 text-gray-900 text-sm"
+                              className="bg-white dark:bg-gray-700 border-gray-300 dark:border-gray-600 text-gray-900 dark:text-white text-sm"
                               placeholder="Workspace description"
                               rows={2}
                             />
@@ -296,10 +310,10 @@ const Dashboard = () => {
                           </div>
                         ) : (
                           <>
-                            <CardTitle className="text-xl text-gray-900 truncate mb-2 group-hover:text-red-600 transition-colors">
+                            <CardTitle className="text-xl text-gray-900 dark:text-white truncate mb-2 group-hover:text-red-600 transition-colors">
                               {workspace.name}
                             </CardTitle>
-                            <CardDescription className="text-gray-600 text-sm leading-relaxed">
+                            <CardDescription className="text-gray-600 dark:text-gray-400 text-sm leading-relaxed">
                               {workspace.description || 'No description provided'}
                             </CardDescription>
                           </>
@@ -310,7 +324,7 @@ const Dashboard = () => {
                           size="sm"
                           variant="ghost"
                           onClick={() => startEditing(workspace)}
-                          className="text-gray-400 hover:text-red-600 hover:bg-red-50 opacity-0 group-hover:opacity-100 transition-all"
+                          className="text-gray-400 dark:text-gray-500 hover:text-red-600 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 opacity-0 group-hover:opacity-100 transition-all"
                         >
                           <Edit className="h-4 w-4" />
                         </Button>
@@ -320,7 +334,7 @@ const Dashboard = () => {
                   
                   {editingWorkspace?.id !== workspace.id && (
                     <CardContent>
-                      <div className="flex justify-between items-center text-sm text-gray-500 mb-6">
+                      <div className="flex justify-between items-center text-sm text-gray-500 dark:text-gray-400 mb-6">
                         <span>Created {new Date(workspace.created_at).toLocaleDateString()}</span>
                       </div>
                       
@@ -329,7 +343,7 @@ const Dashboard = () => {
                           size="sm"
                           variant="outline"
                           onClick={() => navigate(`/workspace/${workspace.id}/persona-builder`)}
-                          className="w-full justify-start text-gray-700 border-gray-300 hover:bg-red-50 hover:border-red-400 hover:text-red-700 transition-all"
+                          className="w-full justify-start text-gray-700 dark:text-gray-300 border-gray-300 dark:border-gray-600 hover:bg-red-50 dark:hover:bg-red-900/20 hover:border-red-400 dark:hover:border-red-600 hover:text-red-700 dark:hover:text-red-400 transition-all"
                         >
                           <Users className="h-4 w-4 mr-2" />
                           Build Personas
@@ -338,7 +352,7 @@ const Dashboard = () => {
                           size="sm"
                           variant="outline"
                           onClick={() => navigate(`/workspace/${workspace.id}/problem-canvas`)}
-                          className="w-full justify-start text-gray-700 border-gray-300 hover:bg-red-50 hover:border-red-400 hover:text-red-700 transition-all"
+                          className="w-full justify-start text-gray-700 dark:text-gray-300 border-gray-300 dark:border-gray-600 hover:bg-red-50 dark:hover:bg-red-900/20 hover:border-red-400 dark:hover:border-red-600 hover:text-red-700 dark:hover:text-red-400 transition-all"
                         >
                           <LayoutGrid className="h-4 w-4 mr-2" />
                           Problem Canvas
@@ -347,7 +361,7 @@ const Dashboard = () => {
                           size="sm"
                           variant="outline"
                           onClick={() => navigate(`/workspace/${workspace.id}/ai-docs`)}
-                          className="w-full justify-start text-gray-700 border-gray-300 hover:bg-red-50 hover:border-red-400 hover:text-red-700 transition-all"
+                          className="w-full justify-start text-gray-700 dark:text-gray-300 border-gray-300 dark:border-gray-600 hover:bg-red-50 dark:hover:bg-red-900/20 hover:border-red-400 dark:hover:border-red-600 hover:text-red-700 dark:hover:text-red-400 transition-all"
                         >
                           <FileText className="h-4 w-4 mr-2" />
                           AI Documents

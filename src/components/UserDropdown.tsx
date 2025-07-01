@@ -30,6 +30,7 @@ const UserDropdown = () => {
     full_name: profile?.full_name || '',
     email: profile?.email || ''
   });
+  const [uploadingPicture, setUploadingPicture] = useState(false);
   const [theme, setTheme] = useState(() => {
     return localStorage.getItem('theme') || 'system';
   });
@@ -70,12 +71,76 @@ const UserDropdown = () => {
         description: 'Profile updated successfully',
       });
       setShowProfileDialog(false);
+      window.location.reload(); // Refresh to update profile data
     } catch (error: any) {
       toast({
         title: 'Error',
         description: error.message || 'Failed to update profile',
         variant: 'destructive',
       });
+    }
+  };
+
+  const handlePictureUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    if (file.size > 2 * 1024 * 1024) {
+      toast({
+        title: 'Error',
+        description: 'File size must be less than 2MB',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    if (!file.type.startsWith('image/')) {
+      toast({
+        title: 'Error',
+        description: 'Please select a valid image file',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    setUploadingPicture(true);
+
+    try {
+      const fileExt = file.name.split('.').pop();
+      const fileName = `${profile?.id}/avatar.${fileExt}`;
+
+      const { error: uploadError } = await supabase.storage
+        .from('avatars')
+        .upload(fileName, file, { upsert: true });
+
+      if (uploadError) throw uploadError;
+
+      const { data } = supabase.storage
+        .from('avatars')
+        .getPublicUrl(fileName);
+
+      const { error: updateError } = await supabase
+        .from('profiles')
+        .update({ avatar_url: data.publicUrl })
+        .eq('id', profile?.id);
+
+      if (updateError) throw updateError;
+
+      toast({
+        title: 'Success',
+        description: 'Profile picture updated successfully',
+      });
+      
+      setShowPictureDialog(false);
+      window.location.reload(); // Refresh to show new avatar
+    } catch (error: any) {
+      toast({
+        title: 'Error',
+        description: error.message || 'Failed to upload picture',
+        variant: 'destructive',
+      });
+    } finally {
+      setUploadingPicture(false);
     }
   };
 
@@ -123,50 +188,50 @@ const UserDropdown = () => {
               </Avatar>
             </Button>
           </DropdownMenuTrigger>
-          <DropdownMenuContent className="w-56" align="end" forceMount>
+          <DropdownMenuContent className="w-56 bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700" align="end" forceMount>
             <div className="flex items-center justify-start gap-2 p-2">
               <div className="flex flex-col space-y-1 leading-none">
-                <p className="font-medium">{profile?.full_name || 'User'}</p>
-                <p className="w-[200px] truncate text-sm text-muted-foreground">
+                <p className="font-medium text-gray-900 dark:text-white">{profile?.full_name || 'User'}</p>
+                <p className="w-[200px] truncate text-sm text-muted-foreground dark:text-gray-400">
                   {profile?.email}
                 </p>
               </div>
             </div>
-            <DropdownMenuSeparator />
-            <DropdownMenuItem onClick={() => setShowProfileDialog(true)}>
+            <DropdownMenuSeparator className="bg-gray-200 dark:bg-gray-700" />
+            <DropdownMenuItem onClick={() => setShowProfileDialog(true)} className="text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">
               <User className="mr-2 h-4 w-4" />
               <span>Profile</span>
             </DropdownMenuItem>
-            <DropdownMenuItem onClick={() => setShowSettingsDialog(true)}>
+            <DropdownMenuItem onClick={() => setShowSettingsDialog(true)} className="text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">
               <Settings className="mr-2 h-4 w-4" />
               <span>Settings</span>
             </DropdownMenuItem>
-            <DropdownMenuItem onClick={() => setShowPictureDialog(true)}>
+            <DropdownMenuItem onClick={() => setShowPictureDialog(true)} className="text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">
               <Image className="mr-2 h-4 w-4" />
               <span>Add Picture</span>
             </DropdownMenuItem>
             <DropdownMenuSub>
-              <DropdownMenuSubTrigger>
+              <DropdownMenuSubTrigger className="text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">
                 <Sun className="mr-2 h-4 w-4" />
                 <span>Theme</span>
               </DropdownMenuSubTrigger>
-              <DropdownMenuSubContent>
-                <DropdownMenuItem onClick={() => handleThemeChange('light')}>
+              <DropdownMenuSubContent className="bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700">
+                <DropdownMenuItem onClick={() => handleThemeChange('light')} className="text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">
                   <Sun className="mr-2 h-4 w-4" />
                   <span>Light Mode</span>
                 </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => handleThemeChange('dark')}>
+                <DropdownMenuItem onClick={() => handleThemeChange('dark')} className="text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">
                   <Moon className="mr-2 h-4 w-4" />
                   <span>Dark Mode</span>
                 </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => handleThemeChange('system')}>
+                <DropdownMenuItem onClick={() => handleThemeChange('system')} className="text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">
                   <Monitor className="mr-2 h-4 w-4" />
                   <span>System Default</span>
                 </DropdownMenuItem>
               </DropdownMenuSubContent>
             </DropdownMenuSub>
-            <DropdownMenuSeparator />
-            <DropdownMenuItem onClick={handleSignOut}>
+            <DropdownMenuSeparator className="bg-gray-200 dark:bg-gray-700" />
+            <DropdownMenuItem onClick={handleSignOut} className="text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">
               <LogOut className="mr-2 h-4 w-4" />
               <span>Sign Out</span>
             </DropdownMenuItem>
@@ -176,31 +241,33 @@ const UserDropdown = () => {
 
       {/* Profile Dialog */}
       <Dialog open={showProfileDialog} onOpenChange={setShowProfileDialog}>
-        <DialogContent>
+        <DialogContent className="bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700">
           <DialogHeader>
-            <DialogTitle>Edit Profile</DialogTitle>
-            <DialogDescription>
+            <DialogTitle className="text-gray-900 dark:text-white">Edit Profile</DialogTitle>
+            <DialogDescription className="text-gray-600 dark:text-gray-400">
               Update your profile information here.
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4">
             <div>
-              <Label htmlFor="fullName">Full Name</Label>
+              <Label htmlFor="fullName" className="text-gray-900 dark:text-white">Full Name</Label>
               <Input
                 id="fullName"
                 value={profileForm.full_name}
                 onChange={(e) => setProfileForm(prev => ({ ...prev, full_name: e.target.value }))}
                 placeholder="Enter your full name"
+                className="bg-white dark:bg-gray-700 border-gray-300 dark:border-gray-600 text-gray-900 dark:text-white"
               />
             </div>
             <div>
-              <Label htmlFor="email">Email</Label>
+              <Label htmlFor="email" className="text-gray-900 dark:text-white">Email</Label>
               <Input
                 id="email"
                 type="email"
                 value={profileForm.email}
                 onChange={(e) => setProfileForm(prev => ({ ...prev, email: e.target.value }))}
                 placeholder="Enter your email"
+                className="bg-white dark:bg-gray-700 border-gray-300 dark:border-gray-600 text-gray-900 dark:text-white"
               />
             </div>
           </div>
@@ -215,25 +282,25 @@ const UserDropdown = () => {
 
       {/* Settings Dialog */}
       <Dialog open={showSettingsDialog} onOpenChange={setShowSettingsDialog}>
-        <DialogContent>
+        <DialogContent className="bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700">
           <DialogHeader>
-            <DialogTitle>Settings</DialogTitle>
-            <DialogDescription>
+            <DialogTitle className="text-gray-900 dark:text-white">Settings</DialogTitle>
+            <DialogDescription className="text-gray-600 dark:text-gray-400">
               Manage your account settings and preferences.
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4">
             <div className="flex items-center justify-between">
               <div>
-                <h4 className="font-medium">Email Notifications</h4>
-                <p className="text-sm text-muted-foreground">Receive notifications via email</p>
+                <h4 className="font-medium text-gray-900 dark:text-white">Email Notifications</h4>
+                <p className="text-sm text-muted-foreground dark:text-gray-400">Receive notifications via email</p>
               </div>
               <Button variant="outline" size="sm">Configure</Button>
             </div>
             <div className="flex items-center justify-between">
               <div>
-                <h4 className="font-medium">Privacy Settings</h4>
-                <p className="text-sm text-muted-foreground">Manage your privacy preferences</p>
+                <h4 className="font-medium text-gray-900 dark:text-white">Privacy Settings</h4>
+                <p className="text-sm text-muted-foreground dark:text-gray-400">Manage your privacy preferences</p>
               </div>
               <Button variant="outline" size="sm">Configure</Button>
             </div>
@@ -248,10 +315,10 @@ const UserDropdown = () => {
 
       {/* Add Picture Dialog */}
       <Dialog open={showPictureDialog} onOpenChange={setShowPictureDialog}>
-        <DialogContent>
+        <DialogContent className="bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700">
           <DialogHeader>
-            <DialogTitle>Add Profile Picture</DialogTitle>
-            <DialogDescription>
+            <DialogTitle className="text-gray-900 dark:text-white">Add Profile Picture</DialogTitle>
+            <DialogDescription className="text-gray-600 dark:text-gray-400">
               Upload a new profile picture to personalize your account.
             </DialogDescription>
           </DialogHeader>
@@ -265,8 +332,14 @@ const UserDropdown = () => {
               </Avatar>
             </div>
             <div className="text-center">
-              <Input type="file" accept="image/*" className="mb-4" />
-              <p className="text-sm text-muted-foreground">
+              <Input 
+                type="file" 
+                accept="image/*" 
+                className="mb-4 bg-white dark:bg-gray-700 border-gray-300 dark:border-gray-600 text-gray-900 dark:text-white" 
+                onChange={handlePictureUpload}
+                disabled={uploadingPicture}
+              />
+              <p className="text-sm text-muted-foreground dark:text-gray-400">
                 Upload a JPG or PNG image (max 2MB)
               </p>
             </div>
@@ -275,7 +348,6 @@ const UserDropdown = () => {
             <Button variant="outline" onClick={() => setShowPictureDialog(false)}>
               Cancel
             </Button>
-            <Button>Upload Picture</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

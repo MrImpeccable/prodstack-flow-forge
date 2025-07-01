@@ -19,7 +19,7 @@ serve(async (req) => {
 
     console.log('Generate documents request:', { documentType, personas: personas?.length, canvas: canvas?.name });
 
-    // Validate input
+    // Enhanced validation
     if (!documentType) {
       return new Response(JSON.stringify({ 
         error: 'Document type is required',
@@ -40,6 +40,22 @@ serve(async (req) => {
       });
     }
 
+    // Validate that personas have meaningful data
+    const validPersonas = personas.filter((p: any) => 
+      p.name && p.name.trim() && 
+      (p.goals?.length > 0 || p.frustrations?.length > 0 || p.role)
+    );
+
+    if (validPersonas.length === 0) {
+      return new Response(JSON.stringify({ 
+        error: 'Personas need more details',
+        content: 'Please add names, roles, goals, or frustrations to your personas before generating documents'
+      }), {
+        status: 400,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
     if (!openAIApiKey) {
       return new Response(JSON.stringify({ 
         error: 'OpenAI API key not configured',
@@ -54,47 +70,49 @@ serve(async (req) => {
     let userPrompt = '';
 
     if (documentType === 'prd') {
-      systemPrompt = 'You are a professional Product Manager who creates comprehensive Product Requirements Documents (PRDs). Create a well-structured PRD with sections for Overview, Problem Statement, Solution, User Stories, Acceptance Criteria, and Technical Considerations.';
+      systemPrompt = 'You are a professional Product Manager who creates comprehensive Product Requirements Documents (PRDs). Create a well-structured PRD with sections for Overview, Problem Statement, Solution, User Stories, Acceptance Criteria, and Technical Considerations. Use markdown formatting for better readability.';
       
       userPrompt = `Create a Product Requirements Document based on the following information:
 
 PERSONAS:
-${personas.map((p: any) => `
-- Name: ${p.name || 'Unnamed Persona'}
-- Role: ${p.role || 'Not specified'}
-- Goals: ${p.goals?.join(', ') || 'None specified'}
-- Frustrations: ${p.frustrations?.join(', ') || 'None specified'}
-- Tools: ${p.tools?.join(', ') || 'None specified'}
+${validPersonas.map((p: any) => `
+- **Name**: ${p.name || 'Unnamed Persona'}
+- **Role**: ${p.role || 'Not specified'}
+- **Goals**: ${p.goals?.join(', ') || 'None specified'}
+- **Frustrations**: ${p.frustrations?.join(', ') || 'None specified'}
+- **Tools**: ${p.tools?.join(', ') || 'None specified'}
+- **Bio**: ${p.bio || 'No bio provided'}
 `).join('\n')}
 
 ${canvas ? `
 PROBLEM SPACE CANVAS:
-- Pain Points: ${canvas.pain_points?.join(', ') || 'None specified'}
-- Current Behaviors: ${canvas.current_behaviors?.join(', ') || 'None specified'}
-- Opportunities: ${canvas.opportunities?.join(', ') || 'None specified'}
+- **Pain Points**: ${canvas.pain_points?.join(', ') || 'None specified'}
+- **Current Behaviors**: ${canvas.current_behaviors?.join(', ') || 'None specified'}
+- **Opportunities**: ${canvas.opportunities?.join(', ') || 'None specified'}
 ` : 'No problem canvas data available.'}
 
-Please create a comprehensive PRD that addresses the personas' needs and the identified problems/opportunities.`;
+Please create a comprehensive PRD that addresses the personas' needs and the identified problems/opportunities. Structure it with clear sections and use markdown formatting.`;
     } else if (documentType === 'user_stories') {
-      systemPrompt = 'You are a professional Product Manager who creates clear, actionable user stories following the "As a [user], I want [action], so that [benefit]" format. Focus on creating stories that are testable and implementable.';
+      systemPrompt = 'You are a professional Product Manager who creates clear, actionable user stories following the "As a [user], I want [action], so that [benefit]" format. Focus on creating stories that are testable and implementable. Format the response with markdown for better readability.';
       
       userPrompt = `Create user stories based on the following information:
 
 PERSONAS:
-${personas.map((p: any) => `
-- Name: ${p.name || 'Unnamed Persona'}
-- Role: ${p.role || 'Not specified'}
-- Goals: ${p.goals?.join(', ') || 'None specified'}
-- Frustrations: ${p.frustrations?.join(', ') || 'None specified'}
+${validPersonas.map((p: any) => `
+- **Name**: ${p.name || 'Unnamed Persona'}
+- **Role**: ${p.role || 'Not specified'}
+- **Goals**: ${p.goals?.join(', ') || 'None specified'}
+- **Frustrations**: ${p.frustrations?.join(', ') || 'None specified'}
+- **Bio**: ${p.bio || 'No bio provided'}
 `).join('\n')}
 
 ${canvas ? `
 PROBLEM SPACE CANVAS:
-- Pain Points: ${canvas.pain_points?.join(', ') || 'None specified'}
-- Opportunities: ${canvas.opportunities?.join(', ') || 'None specified'}
+- **Pain Points**: ${canvas.pain_points?.join(', ') || 'None specified'}
+- **Opportunities**: ${canvas.opportunities?.join(', ') || 'None specified'}
 ` : 'No problem canvas data available.'}
 
-Create 8-12 user stories that address the personas' goals and frustrations. Each story should follow the format: "As a [persona], I want [action], so that [benefit]" and include acceptance criteria.`;
+Create 8-12 user stories that address the personas' goals and frustrations. Each story should follow the format: "As a [persona], I want [action], so that [benefit]" and include acceptance criteria. Use markdown formatting with headers and bullet points.`;
     } else {
       return new Response(JSON.stringify({ 
         error: 'Invalid document type',
@@ -105,7 +123,7 @@ Create 8-12 user stories that address the personas' goals and frustrations. Each
       });
     }
 
-    console.log('Making OpenAI API request...');
+    console.log('Making OpenAI API request with GPT-4...');
     
     const response = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
@@ -114,13 +132,13 @@ Create 8-12 user stories that address the personas' goals and frustrations. Each
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'gpt-4o-mini',
+        model: 'gpt-4',
         messages: [
           { role: 'system', content: systemPrompt },
           { role: 'user', content: userPrompt }
         ],
         temperature: 0.7,
-        max_tokens: 2000,
+        max_tokens: 3000,
       }),
     });
 
@@ -129,7 +147,7 @@ Create 8-12 user stories that address the personas' goals and frustrations. Each
       console.error('OpenAI API error:', errorText);
       return new Response(JSON.stringify({ 
         error: `OpenAI API error: ${response.status}`,
-        content: 'There was an error generating the document. Please try again later.'
+        content: 'There was an error generating the document. Please try again later. If the problem persists, try simplifying your personas or canvas data.'
       }), {
         status: 500,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -141,7 +159,7 @@ Create 8-12 user stories that address the personas' goals and frustrations. Each
     if (!data.choices || data.choices.length === 0) {
       return new Response(JSON.stringify({ 
         error: 'No response from OpenAI API',
-        content: 'The AI service did not return a response. Please try again.'
+        content: 'The AI service did not return a response. Please try again with different input data.'
       }), {
         status: 500,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -153,14 +171,14 @@ Create 8-12 user stories that address the personas' goals and frustrations. Each
     if (!content) {
       return new Response(JSON.stringify({ 
         error: 'Empty response from OpenAI API',
-        content: 'The AI service returned an empty response. Please try again.'
+        content: 'The AI service returned an empty response. Please try again with more detailed persona information.'
       }), {
         status: 500,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
 
-    console.log('Successfully generated content');
+    console.log('Successfully generated content with GPT-4');
 
     return new Response(JSON.stringify({ 
       content,
@@ -174,7 +192,7 @@ Create 8-12 user stories that address the personas' goals and frustrations. Each
     console.error('Error in generate-documents function:', error);
     return new Response(JSON.stringify({ 
       error: 'Unexpected error occurred',
-      content: 'An unexpected error occurred while generating the document. Please try again.',
+      content: 'An unexpected error occurred while generating the document. Please check your input data and try again.',
       details: error.message
     }), {
       status: 500,

@@ -21,18 +21,43 @@ const ResetPassword = () => {
   const { toast } = useToast();
 
   useEffect(() => {
-    // Check if we have the required tokens from the URL
+    // Initialize theme
+    const savedTheme = localStorage.getItem('theme') || 'system';
+    const root = window.document.documentElement;
+    
+    if (savedTheme === 'dark') {
+      root.classList.add('dark');
+    } else if (savedTheme === 'light') {
+      root.classList.remove('dark');
+    } else {
+      const systemTheme = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+      if (systemTheme === 'dark') {
+        root.classList.add('dark');
+      } else {
+        root.classList.remove('dark');
+      }
+    }
+
+    // Check for reset tokens
     const accessToken = searchParams.get('access_token');
     const refreshToken = searchParams.get('refresh_token');
+    const type = searchParams.get('type');
     
-    if (!accessToken || !refreshToken) {
+    if (type !== 'recovery' || !accessToken || !refreshToken) {
       toast({
         title: 'Invalid Reset Link',
         description: 'The password reset link is invalid or has expired.',
         variant: 'destructive',
       });
       navigate('/auth');
+      return;
     }
+
+    // Set the session with the tokens
+    supabase.auth.setSession({
+      access_token: accessToken,
+      refresh_token: refreshToken,
+    });
   }, [searchParams, navigate, toast]);
 
   const validatePassword = (password: string) => {
@@ -83,7 +108,7 @@ const ResetPassword = () => {
       console.error('Error updating password:', error);
       toast({
         title: 'Error',
-        description: error.message || 'Failed to update password',
+        description: error.message || 'Failed to update password. Please try again.',
         variant: 'destructive',
       });
     } finally {
@@ -98,7 +123,7 @@ const ResetPassword = () => {
   if (isSuccess) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-gray-50 to-white dark:from-gray-900 dark:to-gray-800 flex items-center justify-center p-4">
-        <Card className="w-full max-w-md text-center">
+        <Card className="w-full max-w-md text-center bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700">
           <CardContent className="pt-6">
             <CheckCircle className="h-16 w-16 text-green-500 mx-auto mb-4" />
             <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">
@@ -121,7 +146,7 @@ const ResetPassword = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 to-white dark:from-gray-900 dark:to-gray-800 flex items-center justify-center p-4">
-      <Card className="w-full max-w-md">
+      <Card className="w-full max-w-md bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700">
         <CardHeader className="text-center">
           <button 
             onClick={handleLogoClick}
@@ -136,13 +161,13 @@ const ResetPassword = () => {
               <span className="text-red-600">Prod</span>Stack
             </span>
           </button>
-          <CardTitle className="text-2xl font-bold">Reset Your Password</CardTitle>
-          <CardDescription>Enter your new password below</CardDescription>
+          <CardTitle className="text-2xl font-bold text-gray-900 dark:text-white">Reset Your Password</CardTitle>
+          <CardDescription className="text-gray-600 dark:text-gray-400">Enter your new password below</CardDescription>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleResetPassword} className="space-y-4">
             <div>
-              <Label htmlFor="password">New Password</Label>
+              <Label htmlFor="password" className="text-gray-900 dark:text-white">New Password</Label>
               <div className="relative">
                 <Input
                   id="password"
@@ -152,20 +177,21 @@ const ResetPassword = () => {
                   placeholder="Enter your new password"
                   required
                   minLength={6}
+                  className="bg-white dark:bg-gray-700 border-gray-300 dark:border-gray-600 text-gray-900 dark:text-white"
                 />
                 <button
                   type="button"
-                  className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-gray-700"
+                  className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300"
                   onClick={() => setShowPassword(!showPassword)}
                 >
                   {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                 </button>
               </div>
-              <p className="text-xs text-gray-500 mt-1">Password must be at least 6 characters long</p>
+              <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">Password must be at least 6 characters long</p>
             </div>
             
             <div>
-              <Label htmlFor="confirmPassword">Confirm New Password</Label>
+              <Label htmlFor="confirmPassword" className="text-gray-900 dark:text-white">Confirm New Password</Label>
               <div className="relative">
                 <Input
                   id="confirmPassword"
@@ -175,10 +201,11 @@ const ResetPassword = () => {
                   placeholder="Confirm your new password"
                   required
                   minLength={6}
+                  className="bg-white dark:bg-gray-700 border-gray-300 dark:border-gray-600 text-gray-900 dark:text-white"
                 />
                 <button
                   type="button"
-                  className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-gray-700"
+                  className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300"
                   onClick={() => setShowConfirmPassword(!showConfirmPassword)}
                 >
                   {showConfirmPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
