@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
@@ -167,31 +168,33 @@ const Dashboard = () => {
     <div className="min-h-screen bg-white dark:bg-gray-900">
       <header className="bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800 shadow-sm">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center py-6 sm:py-4 gap-4 sm:gap-0">
-            <div className="flex flex-col sm:flex-row sm:items-center gap-4 sm:gap-4">
-              <button 
-                onClick={handleLogoClick}
-                className="flex items-center space-x-4 hover:opacity-80 transition-opacity self-start"
-              >
-                <img 
-                  src="/lovable-uploads/3b4d22fa-d92b-49a4-9d92-263e24102342.png" 
-                  alt="ProdStack Logo" 
-                  className="h-auto w-[100px] sm:w-[80px]"
-                />
-                <h1 className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white">
-                  <span className="text-red-600">Prod</span>Stack
-                </h1>
-              </button>
-            </div>
-            <div className="self-start sm:self-center">
-              <UserDropdown />
+          <div className="pt-6 pb-4 pl-4 sm:pt-4 sm:pb-4 sm:pl-0">
+            <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
+              <div className="flex flex-col sm:flex-row sm:items-center gap-4">
+                <button 
+                  onClick={handleLogoClick}
+                  className="flex items-center space-x-4 hover:opacity-80 transition-opacity self-start"
+                >
+                  <img 
+                    src="/lovable-uploads/3b4d22fa-d92b-49a4-9d92-263e24102342.png" 
+                    alt="ProdStack Logo" 
+                    className="h-auto w-[100px] sm:w-[80px]"
+                  />
+                  <h1 className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white">
+                    <span className="text-red-600">Prod</span>Stack
+                  </h1>
+                </button>
+              </div>
+              <div className="self-start sm:self-center">
+                <UserDropdown />
+              </div>
             </div>
           </div>
         </div>
       </header>
 
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-12">
-        <div className="mb-8">
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8">
+        <div className="mb-8 pl-4 sm:pl-0">
           <h2 className="text-2xl sm:text-3xl font-medium text-gray-900 dark:text-white mb-2">
             Welcome back, {getFirstName(profile?.full_name)}
           </h2>
