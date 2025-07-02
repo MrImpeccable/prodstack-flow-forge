@@ -123,7 +123,7 @@ serve(async (req) => {
       );
     }
 
-    // Prepare context for OpenAI
+    // Prepare context for Gemini AI
     let context = `Workspace: ${workspace.name}\n`;
     if (workspace.description) {
       context += `Description: ${workspace.description}\n`;
@@ -152,12 +152,17 @@ serve(async (req) => {
       if (canvas.opportunities?.length) context += `Opportunities: ${canvas.opportunities.join(', ')}\n`;
     }
 
-    // Generate content using OpenAI
-    const openaiApiKey = Deno.env.get('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');
+    // Check for Gemini API key and add logging
+    const geminiApiKey = Deno.env.get('GEMINI_API_KEY');
     
-    if (!openaiApiKey) {
+    console.log('API Key Check:');
+    console.log('- Gemini API Key exists:', !!geminiApiKey);
+    console.log('- Key length:', geminiApiKey ? geminiApiKey.length : 0);
+    
+    if (!geminiApiKey) {
+      console.error('Gemini API key is missing from environment variables');
       return new Response(
-        JSON.stringify({ error: 'OpenAI API key not configured' }),
+        JSON.stringify({ error: 'Gemini API key not configured' }),
         { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
@@ -167,57 +172,68 @@ serve(async (req) => {
 
     if (documentType === 'prd') {
       title = `PRD for ${workspace.name}`;
-      prompt = `Create a comprehensive Product Requirements Document (PRD) based on the following context:\n\n${context}\n\nThe PRD should include:\n1. Executive Summary\n2. Problem Statement\n3. Target Users\n4. Product Goals\n5. Features and Requirements\n6. Success Metrics\n7. Timeline and Milestones\n\nMake it professional and detailed.`;
+      prompt = `You are a senior product manager creating professional product documentation. Create a comprehensive Product Requirements Document (PRD) based on the following context:\n\n${context}\n\nThe PRD should include:\n1. Executive Summary\n2. Problem Statement\n3. Target Users\n4. Product Goals\n5. Features and Requirements\n6. Success Metrics\n7. Timeline and Milestones\n\nMake it professional and detailed.`;
     } else if (documentType === 'user_story') {
       title = `User Stories for ${workspace.name}`;
-      prompt = `Create detailed user stories based on the following context:\n\n${context}\n\nFor each persona, create 3-5 user stories in the format:\n"As a [persona], I want [goal] so that [benefit]"\n\nInclude acceptance criteria for each story and organize by persona.`;
+      prompt = `You are a senior product manager creating professional product documentation. Create detailed user stories based on the following context:\n\n${context}\n\nFor each persona, create 3-5 user stories in the format:\n"As a [persona], I want [goal] so that [benefit]"\n\nInclude acceptance criteria for each story and organize by persona.`;
     }
 
+    console.log('Making request to Gemini API...');
+    console.log('Document Type:', documentType);
+    console.log('Workspace:', workspace.name);
+
     try {
-      const openaiResponse = await fetch('https://api.openai.com/v1/chat/completions', {
+      // Make request to Gemini API
+      const geminiResponse = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key=${geminiApiKey}`, {
         method: 'POST',
         headers: {
-          'Authorization': `Bearer ${openaiApiKey}`,
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          model: 'gpt-4',
-          messages: [
-            {
-              role: 'system',
-              content: 'You are a senior product manager creating professional product documentation. Be thorough, specific, and actionable.'
-            },
-            {
-              role: 'user',
-              content: prompt
-            }
-          ],
-          max_tokens: 4000,
-          temperature: 0.7,
+          contents: [{
+            parts: [{
+              text: prompt
+            }]
+          }],
+          generationConfig: {
+            temperature: 0.7,
+            topK: 40,
+            topP: 0.95,
+            maxOutputTokens: 4000,
+          }
         }),
       });
 
-      if (!openaiResponse.ok) {
-        const errorData = await openaiResponse.json().catch(() => ({}));
-        console.error('OpenAI API error:', errorData);
+      if (!geminiResponse.ok) {
+        const errorData = await geminiResponse.json().catch(() => ({}));
+        console.error('Gemini API error:', errorData);
+        console.error('Response status:', geminiResponse.status);
+        console.error('Response statusText:', geminiResponse.statusText);
         return new Response(
           JSON.stringify({ 
             error: 'Failed to generate document. Please try again later.',
-            details: errorData.error?.message || 'Unknown OpenAI error'
+            details: errorData.error?.message || `Gemini API error: ${geminiResponse.status}`
           }),
           { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
         );
       }
 
-      const openaiData = await openaiResponse.json();
-      const content = openaiData.choices?.[0]?.message?.content;
+      const geminiData = await geminiResponse.json();
+      console.log('Gemini API response received');
+      
+      // Extract content from Gemini response
+      const content = geminiData.candidates?.[0]?.content?.parts?.[0]?.text;
 
       if (!content) {
+        console.error('No content generated from Gemini API');
+        console.error('Gemini response:', JSON.stringify(geminiData, null, 2));
         return new Response(
-          JSON.stringify({ error: 'No content generated from OpenAI' }),
+          JSON.stringify({ error: 'No content generated from Gemini AI' }),
           { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
         );
       }
+
+      console.log('Content generated successfully, length:', content.length);
 
       // Save the generated document
       const { data: document, error: saveError } = await supabaseClient
@@ -241,6 +257,8 @@ serve(async (req) => {
         );
       }
 
+      console.log('Document saved successfully with ID:', document.id);
+
       return new Response(
         JSON.stringify({ 
           success: true, 
@@ -255,12 +273,13 @@ serve(async (req) => {
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
 
-    } catch (openaiError) {
-      console.error('OpenAI request failed:', openaiError);
+    } catch (geminiError) {
+      console.error('Gemini request failed:', geminiError);
+      console.error('Error details:', geminiError.message);
       return new Response(
         JSON.stringify({ 
-          error: 'AI service is currently unavailable. Please try again later.',
-          details: openaiError.message
+          error: 'Gemini AI service is currently unavailable. Please try again later.',
+          details: geminiError.message
         }),
         { status: 503, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
