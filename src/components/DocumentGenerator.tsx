@@ -275,8 +275,8 @@ export function DocumentGenerator() {
                     </div>
                   ))}
                 </div>
-              )}
-            </div>
+              </div>
+            )}
 
             <Button
               onClick={handleGenerate}
