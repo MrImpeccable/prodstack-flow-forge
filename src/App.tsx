@@ -13,6 +13,7 @@ import Dashboard from "./pages/Dashboard";
 import PersonaBuilder from "./pages/PersonaBuilder";
 import ProblemCanvas from "./pages/ProblemCanvas";
 import AIDocs from "./pages/AIDocs";
+import DocumentGeneration from "./pages/DocumentGeneration";
 import Feedback from "./pages/Feedback";
 import ResetPassword from "./pages/ResetPassword";
 import NotFound from "./pages/NotFound";
@@ -49,6 +50,11 @@ const App = () => (
             <Route path="/workspace/:workspaceId/ai-docs" element={
               <ProtectedRoute>
                 <AIDocs />
+              </ProtectedRoute>
+            } />
+            <Route path="/document-generation" element={
+              <ProtectedRoute>
+                <DocumentGeneration />
               </ProtectedRoute>
             } />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
