@@ -107,9 +107,30 @@ export function DocumentGenerator() {
   };
 
   const handleGenerate = async () => {
-    if (!selectedWorkspace || (selectedPersonas.length === 0 && !selectedCanvas)) {
+    // Check authentication first
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) {
       toast({
-        title: 'Error',
+        title: 'Authentication Required',
+        description: 'Please sign in to generate documents',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    // Validate required fields
+    if (!selectedWorkspace) {
+      toast({
+        title: 'Missing Workspace',
+        description: 'Please select a workspace',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    if (selectedPersonas.length === 0 && !selectedCanvas) {
+      toast({
+        title: 'Missing Data',
         description: 'Please select at least one persona or canvas',
         variant: 'destructive',
       });
@@ -117,36 +138,105 @@ export function DocumentGenerator() {
     }
 
     setLoading(true);
+    
+    // Debug logging
+    const requestData = {
+      workspaceId: selectedWorkspace,
+      documentType: documentType,
+      selectedPersonas: selectedPersonas,
+      selectedCanvas: selectedCanvas || null
+    };
+    
+    console.log('Sending request to generate-documents function:', requestData);
+    console.log('Selected workspace:', selectedWorkspace);
+    console.log('Selected personas:', selectedPersonas);
+    console.log('Selected canvas:', selectedCanvas);
+    console.log('Document type:', documentType);
+
     try {
+      // Use proper Supabase function invocation with correct function name (plural)
       const { data, error } = await supabase.functions.invoke('generate-documents', {
-        body: {
-          workspaceId: selectedWorkspace,
-          documentType: documentType,
-          selectedPersonas: selectedPersonas,
-          selectedCanvas: selectedCanvas || null
-        }
+        body: requestData
       });
+
+      console.log('Edge function response:', data);
+      console.log('Edge function error:', error);
 
       if (error) {
         console.error('Supabase function error:', error);
-        throw new Error(error.message || 'Failed to generate document');
+        
+        // Show specific error messages
+        let errorMessage = 'Failed to generate document';
+        
+        if (error.message) {
+          errorMessage = error.message;
+        } else if (typeof error === 'string') {
+          errorMessage = error;
+        } else if (error.details) {
+          errorMessage = error.details;
+        }
+
+        toast({
+          title: 'Generation Failed',
+          description: errorMessage,
+          variant: 'destructive',
+        });
+        return;
       }
 
-      if (!data || !data.document) {
-        throw new Error('No content received from AI service');
+      if (!data) {
+        console.error('No data received from edge function');
+        toast({
+          title: 'Generation Failed',
+          description: 'No response received from AI service',
+          variant: 'destructive',
+        });
+        return;
       }
 
+      if (!data.success) {
+        console.error('Edge function returned unsuccessful response:', data);
+        toast({
+          title: 'Generation Failed',
+          description: data.error || 'Unknown error occurred',
+          variant: 'destructive',
+        });
+        return;
+      }
+
+      if (!data.document || !data.document.content) {
+        console.error('No document content in response:', data);
+        toast({
+          title: 'Generation Failed',
+          description: 'No content received from AI service',
+          variant: 'destructive',
+        });
+        return;
+      }
+
+      console.log('Successfully generated document:', data.document);
       setGeneratedText(data.document.content);
       
       toast({
         title: 'Success',
         description: 'Document generated successfully',
       });
+
     } catch (error) {
       console.error('Error generating document:', error);
+      
+      // Handle different types of errors
+      let errorMessage = 'Failed to generate document';
+      
+      if (error instanceof Error) {
+        errorMessage = error.message;
+      } else if (typeof error === 'string') {
+        errorMessage = error;
+      }
+
       toast({
         title: 'Error',
-        description: error.message || 'Failed to generate document',
+        description: errorMessage,
         variant: 'destructive',
       });
     } finally {
