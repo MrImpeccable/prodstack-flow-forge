@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { PersonaSelector } from './PersonaSelector';
@@ -8,6 +7,7 @@ import { DocumentTypeSelector } from './document-config/DocumentTypeSelector';
 import { DataAvailabilityDisplay } from './document-config/DataAvailabilityDisplay';
 import { ValidationDisplay } from './document-config/ValidationDisplay';
 import { GenerateButton } from './document-config/GenerateButton';
+import { canGenerate, getValidationMessage } from '@/utils/documentValidation';
 
 interface Workspace {
   id: string;
@@ -63,37 +63,21 @@ export function DocumentConfigPanel({
   onSelectCanvas,
   onGenerate
 }: DocumentConfigPanelProps) {
-  // Check if generation is possible
-  const canGenerate = () => {
-    if (!selectedWorkspace) return false;
-    
-    if (documentType === 'user_story') {
-      return selectedPersonas.length > 0;
-    } else if (documentType === 'prd') {
-      return selectedPersonas.length > 0 || selectedCanvas;
-    }
-    
-    return false;
-  };
+  // Check if generation is possible using the utility function
+  const canGenerateDocument = canGenerate(
+    selectedWorkspace,
+    documentType,
+    selectedPersonas,
+    selectedCanvas
+  );
 
-  // Get validation message
-  const getValidationMessage = () => {
-    if (!selectedWorkspace) return 'Please select a workspace';
-    
-    if (documentType === 'user_story') {
-      if (selectedPersonas.length === 0) {
-        return 'User story generation requires at least one persona';
-      }
-    } else if (documentType === 'prd') {
-      if (selectedPersonas.length === 0 && !selectedCanvas) {
-        return 'PRD generation requires at least one persona or problem canvas';
-      }
-    }
-    
-    return null;
-  };
-
-  const validationMessage = getValidationMessage();
+  // Get validation message using the utility function
+  const validationMessage = getValidationMessage(
+    selectedWorkspace,
+    documentType,
+    selectedPersonas,
+    selectedCanvas
+  );
 
   return (
     <Card>
@@ -143,7 +127,7 @@ export function DocumentConfigPanel({
         <GenerateButton
           documentType={documentType}
           loading={loading}
-          canGenerate={canGenerate()}
+          canGenerate={canGenerateDocument}
           onGenerate={onGenerate}
         />
       </CardContent>
