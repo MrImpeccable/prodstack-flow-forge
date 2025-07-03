@@ -106,6 +106,50 @@ export function DocumentGenerator() {
     }
   };
 
+  const validateRequest = () => {
+    // Check authentication
+    if (!selectedWorkspace) {
+      return { valid: false, error: 'Please select a workspace' };
+    }
+
+    // Validate workspace exists
+    const workspace = workspaces.find(w => w.id === selectedWorkspace);
+    if (!workspace) {
+      return { valid: false, error: 'Selected workspace is invalid' };
+    }
+
+    // Document type specific validation
+    if (documentType === 'user_story') {
+      if (selectedPersonas.length === 0) {
+        return { valid: false, error: 'User story generation requires at least one persona' };
+      }
+    } else if (documentType === 'prd') {
+      if (selectedPersonas.length === 0 && !selectedCanvas) {
+        return { valid: false, error: 'PRD generation requires at least one persona or problem canvas' };
+      }
+    }
+
+    // Validate selected personas exist
+    if (selectedPersonas.length > 0) {
+      const validPersonas = selectedPersonas.filter(personaId => 
+        personas.some(p => p.id === personaId)
+      );
+      if (validPersonas.length !== selectedPersonas.length) {
+        return { valid: false, error: 'Some selected personas are invalid' };
+      }
+    }
+
+    // Validate selected canvas exists
+    if (selectedCanvas) {
+      const canvas = canvases.find(c => c.id === selectedCanvas);
+      if (!canvas) {
+        return { valid: false, error: 'Selected canvas is invalid' };
+      }
+    }
+
+    return { valid: true };
+  };
+
   const handleGenerate = async () => {
     // Check authentication first
     const { data: { user } } = await supabase.auth.getUser();
@@ -118,20 +162,12 @@ export function DocumentGenerator() {
       return;
     }
 
-    // Validate required fields
-    if (!selectedWorkspace) {
+    // Validate request
+    const validation = validateRequest();
+    if (!validation.valid) {
       toast({
-        title: 'Missing Workspace',
-        description: 'Please select a workspace',
-        variant: 'destructive',
-      });
-      return;
-    }
-
-    if (selectedPersonas.length === 0 && !selectedCanvas) {
-      toast({
-        title: 'Missing Data',
-        description: 'Please select at least one persona or canvas',
+        title: 'Validation Error',
+        description: validation.error,
         variant: 'destructive',
       });
       return;
@@ -139,7 +175,7 @@ export function DocumentGenerator() {
 
     setLoading(true);
     
-    // Debug logging
+    // Prepare request data
     const requestData = {
       workspaceId: selectedWorkspace,
       documentType: documentType,
@@ -147,26 +183,30 @@ export function DocumentGenerator() {
       selectedCanvas: selectedCanvas || null
     };
     
-    console.log('Sending request to generate-documents function:', requestData);
-    console.log('Selected workspace:', selectedWorkspace);
-    console.log('Selected personas:', selectedPersonas);
-    console.log('Selected canvas:', selectedCanvas);
-    console.log('Document type:', documentType);
+    // Debug logging
+    console.log('=== DOCUMENT GENERATION REQUEST ===');
+    console.log('User authenticated:', !!user);
+    console.log('Request payload:', JSON.stringify(requestData, null, 2));
+    console.log('Workspace details:', workspaces.find(w => w.id === selectedWorkspace));
+    console.log('Selected personas details:', personas.filter(p => selectedPersonas.includes(p.id)));
+    console.log('Selected canvas details:', selectedCanvas ? canvases.find(c => c.id === selectedCanvas) : null);
+    console.log('====================================');
 
     try {
-      // Use proper Supabase function invocation with correct function name (plural)
       const { data, error } = await supabase.functions.invoke('generate-documents', {
         body: requestData
       });
 
-      console.log('Edge function response:', data);
-      console.log('Edge function error:', error);
+      console.log('=== EDGE FUNCTION RESPONSE ===');
+      console.log('Response data:', data);
+      console.log('Response error:', error);
+      console.log('==============================');
 
       if (error) {
-        console.error('Supabase function error:', error);
+        console.error('Supabase function error details:', error);
         
-        // Show specific error messages
         let errorMessage = 'Failed to generate document';
+        let errorDetails = '';
         
         if (error.message) {
           errorMessage = error.message;
@@ -176,9 +216,20 @@ export function DocumentGenerator() {
           errorMessage = error.details;
         }
 
+        // Check for specific error types
+        if (errorMessage.includes('not found') || errorMessage.includes('404')) {
+          errorDetails = 'The requested data was not found. Please check your selections.';
+        } else if (errorMessage.includes('unauthorized') || errorMessage.includes('401')) {
+          errorDetails = 'Authentication failed. Please sign in again.';
+        } else if (errorMessage.includes('validation') || errorMessage.includes('400')) {
+          errorDetails = 'Invalid request data. Please check your inputs.';
+        } else if (errorMessage.includes('API key') || errorMessage.includes('503')) {
+          errorDetails = 'AI service is temporarily unavailable. Please try again later.';
+        }
+
         toast({
           title: 'Generation Failed',
-          description: errorMessage,
+          description: errorDetails || errorMessage,
           variant: 'destructive',
         });
         return;
@@ -219,13 +270,12 @@ export function DocumentGenerator() {
       
       toast({
         title: 'Success',
-        description: 'Document generated successfully',
+        description: `${documentType === 'prd' ? 'PRD' : 'User Stories'} generated successfully`,
       });
 
     } catch (error) {
-      console.error('Error generating document:', error);
+      console.error('Unexpected error during document generation:', error);
       
-      // Handle different types of errors
       let errorMessage = 'Failed to generate document';
       
       if (error instanceof Error) {
