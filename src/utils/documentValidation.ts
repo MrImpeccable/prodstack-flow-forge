@@ -89,7 +89,7 @@ export function getValidationMessage(
   documentType: 'prd' | 'user_story',
   selectedPersonas: string[],
   selectedCanvas: string
-) {
+): string | null {
   if (!selectedWorkspace) return 'Please select a workspace';
   
   if (documentType === 'user_story') {
@@ -110,13 +110,13 @@ export function canGenerate(
   documentType: 'prd' | 'user_story',
   selectedPersonas: string[],
   selectedCanvas: string
-) {
+): boolean {
   if (!selectedWorkspace) return false;
   
   if (documentType === 'user_story') {
     return selectedPersonas.length > 0;
   } else if (documentType === 'prd') {
-    return selectedPersonas.length > 0 || selectedCanvas;
+    return selectedPersonas.length > 0 || Boolean(selectedCanvas);
   }
   
   return false;

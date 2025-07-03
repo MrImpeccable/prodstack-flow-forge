@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { PersonaSelector } from './PersonaSelector';
@@ -64,7 +65,7 @@ export function DocumentConfigPanel({
   onGenerate
 }: DocumentConfigPanelProps) {
   // Check if generation is possible using the utility function
-  const canGenerateDocument = canGenerate(
+  const canGenerateDocument: boolean = canGenerate(
     selectedWorkspace,
     documentType,
     selectedPersonas,
@@ -72,7 +73,7 @@ export function DocumentConfigPanel({
   );
 
   // Get validation message using the utility function
-  const validationMessage = getValidationMessage(
+  const validationMessage: string | null = getValidationMessage(
     selectedWorkspace,
     documentType,
     selectedPersonas,
