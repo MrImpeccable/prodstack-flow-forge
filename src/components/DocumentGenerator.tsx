@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { useDocumentGeneration } from '@/hooks/useDocumentGeneration';
 import { generateDocument } from '@/services/documentGenerationService';
