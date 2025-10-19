@@ -14,7 +14,231 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      feedback: {
+        Row: {
+          created_at: string | null
+          id: string
+          image_url: string | null
+          message: string
+          page_url: string | null
+          user_agent: string | null
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          image_url?: string | null
+          message: string
+          page_url?: string | null
+          user_agent?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          image_url?: string | null
+          message?: string
+          page_url?: string | null
+          user_agent?: string | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
+      generated_documents: {
+        Row: {
+          content: string
+          created_at: string | null
+          document_type: string
+          id: string
+          source_canvas: string | null
+          source_personas: string[] | null
+          title: string
+          updated_at: string | null
+          workspace_id: string
+        }
+        Insert: {
+          content: string
+          created_at?: string | null
+          document_type: string
+          id?: string
+          source_canvas?: string | null
+          source_personas?: string[] | null
+          title: string
+          updated_at?: string | null
+          workspace_id: string
+        }
+        Update: {
+          content?: string
+          created_at?: string | null
+          document_type?: string
+          id?: string
+          source_canvas?: string | null
+          source_personas?: string[] | null
+          title?: string
+          updated_at?: string | null
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "generated_documents_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      personas: {
+        Row: {
+          age: number | null
+          avatar_url: string | null
+          bio: string | null
+          created_at: string | null
+          frustrations: string[] | null
+          goals: string[] | null
+          id: string
+          name: string
+          role: string | null
+          tools: string[] | null
+          updated_at: string | null
+          workspace_id: string
+        }
+        Insert: {
+          age?: number | null
+          avatar_url?: string | null
+          bio?: string | null
+          created_at?: string | null
+          frustrations?: string[] | null
+          goals?: string[] | null
+          id?: string
+          name: string
+          role?: string | null
+          tools?: string[] | null
+          updated_at?: string | null
+          workspace_id: string
+        }
+        Update: {
+          age?: number | null
+          avatar_url?: string | null
+          bio?: string | null
+          created_at?: string | null
+          frustrations?: string[] | null
+          goals?: string[] | null
+          id?: string
+          name?: string
+          role?: string | null
+          tools?: string[] | null
+          updated_at?: string | null
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "personas_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      problem_canvases: {
+        Row: {
+          canvas_data: Json | null
+          created_at: string | null
+          current_behaviors: string[] | null
+          id: string
+          name: string
+          opportunities: string[] | null
+          pain_points: string[] | null
+          updated_at: string | null
+          workspace_id: string
+        }
+        Insert: {
+          canvas_data?: Json | null
+          created_at?: string | null
+          current_behaviors?: string[] | null
+          id?: string
+          name: string
+          opportunities?: string[] | null
+          pain_points?: string[] | null
+          updated_at?: string | null
+          workspace_id: string
+        }
+        Update: {
+          canvas_data?: Json | null
+          created_at?: string | null
+          current_behaviors?: string[] | null
+          id?: string
+          name?: string
+          opportunities?: string[] | null
+          pain_points?: string[] | null
+          updated_at?: string | null
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "problem_canvases_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      profiles: {
+        Row: {
+          avatar_url: string | null
+          created_at: string | null
+          email: string | null
+          full_name: string | null
+          id: string
+          updated_at: string | null
+        }
+        Insert: {
+          avatar_url?: string | null
+          created_at?: string | null
+          email?: string | null
+          full_name?: string | null
+          id: string
+          updated_at?: string | null
+        }
+        Update: {
+          avatar_url?: string | null
+          created_at?: string | null
+          email?: string | null
+          full_name?: string | null
+          id?: string
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
+      workspaces: {
+        Row: {
+          created_at: string | null
+          description: string | null
+          id: string
+          name: string
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          name: string
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          name?: string
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
