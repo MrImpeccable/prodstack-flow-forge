@@ -20,8 +20,8 @@ export default {
 		},
 		extend: {
 			fontFamily: {
-				sans: ['Inter', 'system-ui', '-apple-system', 'sans-serif'],
-				heading: ['Montserrat', 'system-ui', '-apple-system', 'sans-serif'],
+				sans: ['Poppins', 'system-ui', '-apple-system', 'sans-serif'],
+				heading: ['Inter', 'system-ui', '-apple-system', 'sans-serif'],
 			},
 			colors: {
 				border: 'hsl(var(--border))',
