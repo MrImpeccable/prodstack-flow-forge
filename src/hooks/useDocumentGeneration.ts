@@ -1,6 +1,4 @@
-
 import { useState, useEffect } from 'react';
-import { supabase } from '@/integrations/supabase/client';
 import { fromTable } from '@/lib/supabase-helpers';
 import { useToast } from '@/hooks/use-toast';
 
@@ -35,8 +33,6 @@ export function useDocumentGeneration() {
   const [selectedPersonas, setSelectedPersonas] = useState<string[]>([]);
   const [selectedCanvas, setSelectedCanvas] = useState<string>('');
   const [documentType, setDocumentType] = useState<'prd' | 'user_story'>('prd');
-  const [generatedText, setGeneratedText] = useState('');
-  const [loading, setLoading] = useState(false);
   const { toast } = useToast();
 
   useEffect(() => {
@@ -110,14 +106,9 @@ export function useDocumentGeneration() {
     selectedPersonas,
     selectedCanvas,
     documentType,
-    generatedText,
-    loading,
     setSelectedWorkspace,
     setSelectedPersonas,
     setSelectedCanvas,
     setDocumentType,
-    setGeneratedText,
-    setLoading,
-    toast
   };
 }
