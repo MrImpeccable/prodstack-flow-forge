@@ -8,6 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { ArrowLeft, Plus, X, Save, Users } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
+import { fromTable } from '@/lib/supabase-helpers';
 import { useToast } from '@/hooks/use-toast';
 
 interface CanvasItem {
@@ -48,8 +49,7 @@ const ProblemCanvas = () => {
 
   const fetchPersonas = async () => {
     try {
-      const { data, error } = await supabase
-        .from('personas')
+      const { data, error } = await fromTable('personas')
         .select('*')
         .eq('workspace_id', workspaceId);
 
@@ -62,8 +62,7 @@ const ProblemCanvas = () => {
 
   const fetchCanvases = async () => {
     try {
-      const { data, error } = await supabase
-        .from('problem_canvases')
+      const { data, error } = await fromTable('problem_canvases')
         .select('*')
         .eq('workspace_id', workspaceId)
         .order('created_at', { ascending: false });
@@ -111,15 +110,13 @@ const ProblemCanvas = () => {
       };
 
       if (editingId) {
-        const { error } = await supabase
-          .from('problem_canvases')
+        const { error } = await fromTable('problem_canvases')
           .update(canvasData)
           .eq('id', editingId);
 
         if (error) throw error;
       } else {
-        const { error } = await supabase
-          .from('problem_canvases')
+        const { error } = await fromTable('problem_canvases')
           .insert([canvasData]);
 
         if (error) throw error;

@@ -2,6 +2,7 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { User, Session } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
+import { fromTable } from '@/lib/supabase-helpers';
 
 interface Profile {
   id: string;
@@ -41,8 +42,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const fetchProfile = async (userId: string) => {
     try {
-      const { data, error } = await supabase
-        .from('profiles')
+      const { data, error } = await fromTable('profiles')
         .select('*')
         .eq('id', userId)
         .single();
@@ -150,8 +150,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const updateProfile = async (updates: Partial<Profile>) => {
     if (!user) return { error: new Error('No user logged in') };
 
-    const { error } = await supabase
-      .from('profiles')
+    const { error } = await fromTable('profiles')
       .update(updates)
       .eq('id', user.id);
 

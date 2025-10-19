@@ -7,6 +7,7 @@ import { Badge } from '@/components/ui/badge';
 import { Textarea } from '@/components/ui/textarea';
 import { ArrowLeft, FileText, Download, Wand2, Edit } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
+import { fromTable } from '@/lib/supabase-helpers';
 import { useToast } from '@/hooks/use-toast';
 import { generateDocumentWordDoc, downloadFile } from '@/utils/documentExports';
 
@@ -51,13 +52,12 @@ const AIDocs = () => {
 
   const fetchPersonas = async () => {
     try {
-      const { data, error } = await supabase
-        .from('personas')
+      const { data, error } = await fromTable('personas')
         .select('*')
         .eq('workspace_id', workspaceId);
 
       if (error) throw error;
-      setPersonas(data || []);
+      setPersonas(((data as any) || []) as Persona[]);
     } catch (error) {
       console.error('Error fetching personas:', error);
     }
@@ -65,13 +65,12 @@ const AIDocs = () => {
 
   const fetchCanvases = async () => {
     try {
-      const { data, error } = await supabase
-        .from('problem_canvases')
+      const { data, error } = await fromTable('problem_canvases')
         .select('*')
         .eq('workspace_id', workspaceId);
 
       if (error) throw error;
-      setCanvases(data || []);
+      setCanvases(((data as any) || []) as Canvas[]);
     } catch (error) {
       console.error('Error fetching canvases:', error);
     }
@@ -133,8 +132,7 @@ const AIDocs = () => {
     if (!generatedContent) return;
 
     try {
-      const { error } = await supabase
-        .from('generated_documents')
+      const { error } = await fromTable('generated_documents')
         .insert([{
           workspace_id: workspaceId,
           title: `${documentType.toUpperCase()} - ${new Date().toLocaleDateString()}`,

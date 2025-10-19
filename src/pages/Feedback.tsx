@@ -9,6 +9,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { ArrowLeft, Send, CheckCircle, Upload, X } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
+import { fromTable } from '@/lib/supabase-helpers';
 import { useAuth } from '@/contexts/AuthContext';
 
 const Feedback = () => {
@@ -89,8 +90,7 @@ const Feedback = () => {
       }
 
       // Save feedback to database
-      const { error: dbError } = await supabase
-        .from('feedback')
+      const { error: dbError } = await fromTable('feedback')
         .insert([{
           message: message.trim(),
           user_id: user?.id || null,

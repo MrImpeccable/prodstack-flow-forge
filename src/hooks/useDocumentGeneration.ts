@@ -1,6 +1,7 @@
 
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
+import { fromTable } from '@/lib/supabase-helpers';
 import { useToast } from '@/hooks/use-toast';
 
 interface Persona {
@@ -51,16 +52,15 @@ export function useDocumentGeneration() {
 
   const fetchWorkspaces = async () => {
     try {
-      const { data, error } = await supabase
-        .from('workspaces')
+      const { data, error } = await fromTable('workspaces')
         .select('*')
         .order('created_at', { ascending: false });
 
       if (error) throw error;
-      setWorkspaces(data || []);
-      
-      if (data && data.length > 0) {
-        setSelectedWorkspace(data[0].id);
+      const list = ((data as any) || []) as Workspace[];
+      setWorkspaces(list);
+      if (list.length > 0) {
+        setSelectedWorkspace(list[0].id);
       }
     } catch (error) {
       console.error('Error fetching workspaces:', error);
@@ -76,13 +76,12 @@ export function useDocumentGeneration() {
     if (!selectedWorkspace) return;
 
     try {
-      const { data, error } = await supabase
-        .from('personas')
+      const { data, error } = await fromTable('personas')
         .select('*')
         .eq('workspace_id', selectedWorkspace);
 
       if (error) throw error;
-      setPersonas(data || []);
+      setPersonas(((data as any) || []) as Persona[]);
     } catch (error) {
       console.error('Error fetching personas:', error);
     }
@@ -92,13 +91,12 @@ export function useDocumentGeneration() {
     if (!selectedWorkspace) return;
 
     try {
-      const { data, error } = await supabase
-        .from('problem_canvases')
+      const { data, error } = await fromTable('problem_canvases')
         .select('*')
         .eq('workspace_id', selectedWorkspace);
 
       if (error) throw error;
-      setCanvases(data || []);
+      setCanvases(((data as any) || []) as Canvas[]);
     } catch (error) {
       console.error('Error fetching canvases:', error);
     }

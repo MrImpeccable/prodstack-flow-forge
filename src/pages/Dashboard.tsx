@@ -9,6 +9,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Label } from '@/components/ui/label';
 import { Plus, Users, LayoutGrid, FileText, Edit, Save, X } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
+import { fromTable } from '@/lib/supabase-helpers';
 import { useNavigate } from 'react-router-dom';
 import { useToast } from '@/hooks/use-toast';
 import UserDropdown from '@/components/UserDropdown';
@@ -44,8 +45,7 @@ const Dashboard = () => {
 
   const fetchWorkspaces = async () => {
     try {
-      const { data, error } = await supabase
-        .from('workspaces')
+      const { data, error } = await fromTable('workspaces')
         .select('*')
         .order('created_at', { ascending: false });
 
@@ -74,8 +74,7 @@ const Dashboard = () => {
     }
 
     try {
-      const { data, error } = await supabase
-        .from('workspaces')
+      const { data, error } = await fromTable('workspaces')
         .insert([{ 
           name: createForm.name.trim(), 
           description: createForm.description.trim() || null,
@@ -113,8 +112,7 @@ const Dashboard = () => {
     if (!editingWorkspace || !editForm.name.trim()) return;
 
     try {
-      const { data, error } = await supabase
-        .from('workspaces')
+      const { data, error } = await fromTable('workspaces')
         .update({ 
           name: editForm.name.trim(), 
           description: editForm.description.trim() || null 

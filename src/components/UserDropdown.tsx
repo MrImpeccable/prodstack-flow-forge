@@ -2,6 +2,7 @@
 import React, { useState, useRef } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
+import { fromTable } from '@/lib/supabase-helpers';
 import { useNavigate } from 'react-router-dom';
 import { useToast } from '@/hooks/use-toast';
 import {
@@ -85,8 +86,7 @@ const UserDropdown = () => {
         .from('avatars')
         .getPublicUrl(fileName);
 
-      const { error: updateError } = await supabase
-        .from('profiles')
+      const { error: updateError } = await fromTable('profiles')
         .update({ avatar_url: publicUrl })
         .eq('id', user.id);
 

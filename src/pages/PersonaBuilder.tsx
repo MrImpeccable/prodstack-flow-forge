@@ -8,6 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { ArrowLeft, Plus, X, Save, Download, FileText, Image } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
+import { fromTable } from '@/lib/supabase-helpers';
 import { useToast } from '@/hooks/use-toast';
 import { generatePersonaWordDoc, downloadFile } from '@/utils/documentExports';
 
@@ -50,8 +51,7 @@ const PersonaBuilder = () => {
 
   const fetchPersonas = async () => {
     try {
-      const { data, error } = await supabase
-        .from('personas')
+      const { data, error } = await fromTable('personas')
         .select('*')
         .eq('workspace_id', workspaceId)
         .order('created_at', { ascending: false });
@@ -113,15 +113,13 @@ const PersonaBuilder = () => {
       };
 
       if (editingId) {
-        const { error } = await supabase
-          .from('personas')
+        const { error } = await fromTable('personas')
           .update(personaData)
           .eq('id', editingId);
 
         if (error) throw error;
       } else {
-        const { error } = await supabase
-          .from('personas')
+        const { error } = await fromTable('personas')
           .insert([personaData]);
 
         if (error) throw error;
