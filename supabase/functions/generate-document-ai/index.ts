@@ -181,7 +181,7 @@ serve(async (req) => {
     console.log('Workspace:', workspace.name);
 
     try {
-      // Call Lovable AI Gateway
+      // Call Lovable AI Gateway with streaming
       const aiResponse = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
         method: 'POST',
         headers: {
@@ -196,6 +196,7 @@ serve(async (req) => {
           ],
           temperature: 0.7,
           max_tokens: 4000,
+          stream: true,
         }),
       });
 
@@ -207,14 +208,14 @@ serve(async (req) => {
         // Handle specific error cases
         if (aiResponse.status === 429) {
           return new Response(
-            JSON.stringify({ error: 'Too many requests. Please try again in a moment.' }),
+            JSON.stringify({ error: 'Too many requests. Please try again in a moment.', code: 'RATE_LIMIT' }),
             { status: 429, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
           );
         }
 
         if (aiResponse.status === 402) {
           return new Response(
-            JSON.stringify({ error: 'AI usage limit reached. Please check your workspace credits.' }),
+            JSON.stringify({ error: 'AI usage limit reached. Please check your workspace credits.', code: 'PAYMENT_REQUIRED' }),
             { status: 402, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
           );
         }
@@ -228,60 +229,92 @@ serve(async (req) => {
         );
       }
 
-      const aiData = await aiResponse.json();
-      console.log('AI response received');
-      
-      // Extract content from AI response
-      const content = aiData.choices?.[0]?.message?.content;
+      // Stream the response back to the client
+      console.log('Streaming AI response...');
+      const stream = new ReadableStream({
+        async start(controller) {
+          const reader = aiResponse.body?.getReader();
+          const decoder = new TextDecoder();
+          let fullContent = '';
 
-      if (!content) {
-        console.error('No content generated from AI');
-        console.error('AI response:', JSON.stringify(aiData, null, 2));
-        return new Response(
-          JSON.stringify({ error: 'No content generated. Please try again.' }),
-          { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-        );
-      }
-
-      console.log('Content generated successfully, length:', content.length);
-
-      // Save the generated document
-      const { data: document, error: saveError } = await supabaseClient
-        .from('generated_documents')
-        .insert([{
-          workspace_id: workspaceId,
-          document_type: documentType,
-          title: title,
-          content: content,
-          source_personas: selectedPersonas || [],
-          source_canvas: selectedCanvas || null,
-        }])
-        .select()
-        .single();
-
-      if (saveError) {
-        console.error('Error saving document:', saveError);
-        return new Response(
-          JSON.stringify({ error: 'Failed to save generated document' }),
-          { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-        );
-      }
-
-      console.log('Document saved successfully with ID:', document.id);
-
-      return new Response(
-        JSON.stringify({ 
-          success: true, 
-          document: {
-            id: document.id,
-            title: document.title,
-            content: document.content,
-            document_type: document.document_type,
-            created_at: document.created_at
+          if (!reader) {
+            controller.close();
+            return;
           }
-        }),
-        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
+
+          try {
+            while (true) {
+              const { done, value } = await reader.read();
+              
+              if (done) {
+                // Save the complete document to database
+                console.log('Stream complete, saving document...');
+                const { data: document, error: saveError } = await supabaseClient
+                  .from('generated_documents')
+                  .insert([{
+                    workspace_id: workspaceId,
+                    document_type: documentType,
+                    title: title,
+                    content: fullContent,
+                    source_personas: selectedPersonas || [],
+                    source_canvas: selectedCanvas || null,
+                  }])
+                  .select()
+                  .single();
+
+                if (saveError) {
+                  console.error('Error saving document:', saveError);
+                } else {
+                  console.log('Document saved successfully with ID:', document.id);
+                }
+
+                // Send final event
+                controller.enqueue(new TextEncoder().encode('data: [DONE]\n\n'));
+                controller.close();
+                break;
+              }
+
+              const chunk = decoder.decode(value, { stream: true });
+              const lines = chunk.split('\n');
+
+              for (const line of lines) {
+                if (line.startsWith('data: ')) {
+                  const data = line.slice(6);
+                  
+                  if (data === '[DONE]') {
+                    continue;
+                  }
+
+                  try {
+                    const parsed = JSON.parse(data);
+                    const delta = parsed.choices?.[0]?.delta?.content;
+                    
+                    if (delta) {
+                      fullContent += delta;
+                      // Forward the chunk to the client
+                      controller.enqueue(new TextEncoder().encode(`data: ${JSON.stringify({ content: delta })}\n\n`));
+                    }
+                  } catch (e) {
+                    // Skip invalid JSON
+                  }
+                }
+              }
+            }
+          } catch (error) {
+            console.error('Streaming error:', error);
+            controller.error(error);
+          }
+        },
+      });
+
+      return new Response(stream, {
+        headers: {
+          ...corsHeaders,
+          'Content-Type': 'text/event-stream',
+          'Cache-Control': 'no-cache',
+          'Connection': 'keep-alive',
+        },
+      });
 
     } catch (aiError) {
       console.error('AI request failed:', aiError);

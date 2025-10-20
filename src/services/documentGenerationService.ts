@@ -35,15 +35,19 @@ interface GenerateDocumentParams {
   canvases: Canvas[];
 }
 
-export async function generateDocument({
-  selectedWorkspace,
-  documentType,
-  selectedPersonas,
-  selectedCanvas,
-  workspaces,
-  personas,
-  canvases
-}: GenerateDocumentParams) {
+export async function generateDocument(
+  params: GenerateDocumentParams,
+  onChunk?: (chunk: string) => void
+): Promise<string> {
+  const {
+    selectedWorkspace,
+    documentType,
+    selectedPersonas,
+    selectedCanvas,
+    workspaces,
+    personas,
+    canvases
+  } = params;
   // Check authentication first
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) {
@@ -82,61 +86,92 @@ export async function generateDocument({
   console.log('Selected canvas details:', selectedCanvas ? canvases.find(c => c.id === selectedCanvas) : null);
   console.log('====================================');
 
-  const { data, error } = await supabase.functions.invoke('generate-document-ai', {
-    body: requestData
-  });
+  // Use fetch for streaming support
+  const { data: { session } } = await supabase.auth.getSession();
+  
+  if (!session) {
+    throw new Error('Authentication Required: Please sign in to generate documents');
+  }
 
-  console.log('=== EDGE FUNCTION RESPONSE ===');
-  console.log('Response data:', data);
-  console.log('Response error:', error);
-  console.log('==============================');
-
-  if (error) {
-    console.error('Supabase function error details:', error);
-    
-    let errorMessage = 'Failed to generate document';
-    
-    if (error.message) {
-      errorMessage = error.message;
-    } else if (typeof error === 'string') {
-      errorMessage = error;
-    } else if (error.details) {
-      errorMessage = error.details;
+  const response = await fetch(
+    `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/generate-document-ai`,
+    {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${session.access_token}`,
+      },
+      body: JSON.stringify(requestData),
     }
+  );
 
-    // Check for specific error types
-    if (errorMessage.includes('Too many requests') || errorMessage.includes('429')) {
-      throw new Error('Too many requests. Please try again in a moment.');
-    } else if (errorMessage.includes('usage limit') || errorMessage.includes('402')) {
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({}));
+    console.error('Edge function error:', errorData);
+
+    // Check for specific error codes
+    if (errorData.code === 'RATE_LIMIT' || response.status === 429) {
+      throw new Error('RATE_LIMIT_ERROR');
+    }
+    if (errorData.code === 'PAYMENT_REQUIRED' || response.status === 402) {
       throw new Error('AI usage limit reached. Please check your workspace credits.');
-    } else if (errorMessage.includes('not found') || errorMessage.includes('404')) {
-      throw new Error('The requested data was not found. Please check your selections.');
-    } else if (errorMessage.includes('unauthorized') || errorMessage.includes('401')) {
-      throw new Error('Authentication failed. Please sign in again.');
-    } else if (errorMessage.includes('validation') || errorMessage.includes('400')) {
-      throw new Error('Invalid request data. Please check your inputs.');
-    } else if (errorMessage.includes('Couldn\'t generate') || errorMessage.includes('503')) {
-      throw new Error('Couldn\'t generate document. Please try again.');
     }
 
-    throw new Error(errorMessage);
+    throw new Error(errorData.error || 'Failed to generate document');
   }
 
-  if (!data) {
-    console.error('No data received from edge function');
-    throw new Error('No response received from AI service');
+  // Handle streaming response
+  const reader = response.body?.getReader();
+  const decoder = new TextDecoder();
+  let fullContent = '';
+
+  if (!reader) {
+    throw new Error('No response body received');
   }
 
-  if (!data.success) {
-    console.error('Edge function returned unsuccessful response:', data);
-    throw new Error(data.error || 'Unknown error occurred');
+  try {
+    while (true) {
+      const { done, value } = await reader.read();
+
+      if (done) {
+        break;
+      }
+
+      const chunk = decoder.decode(value, { stream: true });
+      const lines = chunk.split('\n');
+
+      for (const line of lines) {
+        if (line.startsWith('data: ')) {
+          const data = line.slice(6);
+
+          if (data === '[DONE]') {
+            continue;
+          }
+
+          try {
+            const parsed = JSON.parse(data);
+            if (parsed.content) {
+              fullContent += parsed.content;
+              // Call the callback with each chunk
+              if (onChunk) {
+                onChunk(parsed.content);
+              }
+            }
+          } catch (e) {
+            // Skip invalid JSON
+          }
+        }
+      }
+    }
+  } catch (error) {
+    console.error('Streaming error:', error);
+    throw new Error('Failed to process streaming response');
   }
 
-  if (!data.document || !data.document.content) {
-    console.error('No document content in response:', data);
+  if (!fullContent) {
     throw new Error('No content received from AI service');
   }
 
-  console.log('Successfully generated document:', data.document);
-  return data.document.content;
+  console.log('Document generated successfully, length:', fullContent.length);
+  return fullContent;
 }

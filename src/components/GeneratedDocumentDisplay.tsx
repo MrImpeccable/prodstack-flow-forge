@@ -74,7 +74,7 @@ export function GeneratedDocumentDisplay({ generatedText }: GeneratedDocumentDis
               <Textarea
                 value={generatedText}
                 readOnly
-                className="min-h-[500px] font-mono text-sm"
+                className="min-h-[500px] font-mono text-sm whitespace-pre-wrap resize-none"
               />
             </div>
           </div>
