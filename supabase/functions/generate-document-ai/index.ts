@@ -1,4 +1,3 @@
-
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 
@@ -65,6 +64,7 @@ serve(async (req) => {
         .in('id', selectedPersonas);
 
       if (personaError) {
+        console.error('Error fetching personas:', personaError);
         return new Response(
           JSON.stringify({ error: 'Failed to fetch personas' }),
           { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
@@ -92,6 +92,7 @@ serve(async (req) => {
         .single();
 
       if (canvasError) {
+        console.error('Error fetching canvas:', canvasError);
         return new Response(
           JSON.stringify({ error: 'Failed to fetch problem canvas' }),
           { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
@@ -123,7 +124,7 @@ serve(async (req) => {
       );
     }
 
-    // Prepare context for Gemini AI
+    // Build context for AI
     let context = `Workspace: ${workspace.name}\n`;
     if (workspace.description) {
       context += `Description: ${workspace.description}\n`;
@@ -152,83 +153,92 @@ serve(async (req) => {
       if (canvas.opportunities?.length) context += `Opportunities: ${canvas.opportunities.join(', ')}\n`;
     }
 
-    // Check for Gemini API key and add logging
-    const geminiApiKey = Deno.env.get('GEMINI_API_KEY');
-    
-    console.log('API Key Check:');
-    console.log('- Gemini API Key exists:', !!geminiApiKey);
-    console.log('- Key length:', geminiApiKey ? geminiApiKey.length : 0);
-    
-    if (!geminiApiKey) {
-      console.error('Gemini API key is missing from environment variables');
+    // Get Lovable API Key
+    const lovableApiKey = Deno.env.get('LOVABLE_API_KEY');
+    if (!lovableApiKey) {
+      console.error('LOVABLE_API_KEY not configured');
       return new Response(
-        JSON.stringify({ error: 'Gemini API key not configured' }),
+        JSON.stringify({ error: 'AI service not configured' }),
         { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
-    let prompt = '';
+    // Prepare prompts
+    let systemPrompt = 'You are a senior product manager creating professional product documentation.';
+    let userPrompt = '';
     let title = '';
 
     if (documentType === 'prd') {
       title = `PRD for ${workspace.name}`;
-      prompt = `You are a senior product manager creating professional product documentation. Create a comprehensive Product Requirements Document (PRD) based on the following context:\n\n${context}\n\nThe PRD should include:\n1. Executive Summary\n2. Problem Statement\n3. Target Users\n4. Product Goals\n5. Features and Requirements\n6. Success Metrics\n7. Timeline and Milestones\n\nMake it professional and detailed.`;
+      userPrompt = `Create a comprehensive Product Requirements Document (PRD) based on the following context:\n\n${context}\n\nThe PRD should include:\n1. Executive Summary\n2. Problem Statement\n3. Target Users\n4. Product Goals\n5. Features and Requirements\n6. Success Metrics\n7. Timeline and Milestones\n\nMake it professional, detailed, and well-structured with clear sections.`;
     } else if (documentType === 'user_story') {
       title = `User Stories for ${workspace.name}`;
-      prompt = `You are a senior product manager creating professional product documentation. Create detailed user stories based on the following context:\n\n${context}\n\nFor each persona, create 3-5 user stories in the format:\n"As a [persona], I want [goal] so that [benefit]"\n\nInclude acceptance criteria for each story and organize by persona.`;
+      userPrompt = `Create detailed user stories based on the following context:\n\n${context}\n\nFor each persona, create 3-5 user stories in the format:\n"As a [persona], I want [goal] so that [benefit]"\n\nInclude:\n- Acceptance criteria for each story\n- Priority level (High/Medium/Low)\n- Estimated effort (Small/Medium/Large)\n\nOrganize by persona and make them actionable.`;
     }
 
-    console.log('Making request to Gemini API...');
+    console.log('Calling Lovable AI Gateway...');
     console.log('Document Type:', documentType);
     console.log('Workspace:', workspace.name);
 
     try {
-      // Make request to Gemini API
-      const geminiResponse = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key=${geminiApiKey}`, {
+      // Call Lovable AI Gateway
+      const aiResponse = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
         method: 'POST',
         headers: {
+          'Authorization': `Bearer ${lovableApiKey}`,
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          contents: [{
-            parts: [{
-              text: prompt
-            }]
-          }],
-          generationConfig: {
-            temperature: 0.7,
-            topK: 40,
-            topP: 0.95,
-            maxOutputTokens: 4000,
-          }
+          model: 'google/gemini-2.5-flash',
+          messages: [
+            { role: 'system', content: systemPrompt },
+            { role: 'user', content: userPrompt }
+          ],
+          temperature: 0.7,
+          max_tokens: 4000,
         }),
       });
 
-      if (!geminiResponse.ok) {
-        const errorData = await geminiResponse.json().catch(() => ({}));
-        console.error('Gemini API error:', errorData);
-        console.error('Response status:', geminiResponse.status);
-        console.error('Response statusText:', geminiResponse.statusText);
+      if (!aiResponse.ok) {
+        const errorData = await aiResponse.json().catch(() => ({}));
+        console.error('AI Gateway error:', errorData);
+        console.error('Response status:', aiResponse.status);
+
+        // Handle specific error cases
+        if (aiResponse.status === 429) {
+          return new Response(
+            JSON.stringify({ error: 'Too many requests. Please try again in a moment.' }),
+            { status: 429, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          );
+        }
+
+        if (aiResponse.status === 402) {
+          return new Response(
+            JSON.stringify({ error: 'AI usage limit reached. Please check your workspace credits.' }),
+            { status: 402, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          );
+        }
+
         return new Response(
           JSON.stringify({ 
-            error: 'Failed to generate document. Please try again later.',
-            details: errorData.error?.message || `Gemini API error: ${geminiResponse.status}`
+            error: 'Couldn\'t generate document. Please try again.',
+            details: errorData.error?.message || `AI Gateway error: ${aiResponse.status}`
           }),
           { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
         );
       }
 
-      const geminiData = await geminiResponse.json();
-      console.log('Gemini API response received');
+      const aiData = await aiResponse.json();
+      console.log('AI response received');
       
-      // Extract content from Gemini response
-      const content = geminiData.candidates?.[0]?.content?.parts?.[0]?.text;
+      // Extract content from AI response
+      const content = aiData.choices?.[0]?.message?.content;
 
       if (!content) {
-        console.error('No content generated from Gemini API');
-        console.error('Gemini response:', JSON.stringify(geminiData, null, 2));
+        console.error('No content generated from AI');
+        console.error('AI response:', JSON.stringify(aiData, null, 2));
         return new Response(
-          JSON.stringify({ error: 'No content generated from Gemini AI' }),
+          JSON.stringify({ error: 'No content generated. Please try again.' }),
           { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
         );
       }
@@ -273,13 +283,13 @@ serve(async (req) => {
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
 
-    } catch (geminiError) {
-      console.error('Gemini request failed:', geminiError);
-      console.error('Error details:', geminiError.message);
+    } catch (aiError) {
+      console.error('AI request failed:', aiError);
+      console.error('Error details:', aiError.message);
       return new Response(
         JSON.stringify({ 
-          error: 'Gemini AI service is currently unavailable. Please try again later.',
-          details: geminiError.message
+          error: 'Couldn\'t generate document. Please try again.',
+          details: aiError.message
         }),
         { status: 503, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );

@@ -82,7 +82,7 @@ export async function generateDocument({
   console.log('Selected canvas details:', selectedCanvas ? canvases.find(c => c.id === selectedCanvas) : null);
   console.log('====================================');
 
-  const { data, error } = await supabase.functions.invoke('generate-documents', {
+  const { data, error } = await supabase.functions.invoke('generate-document-ai', {
     body: requestData
   });
 
@@ -105,14 +105,18 @@ export async function generateDocument({
     }
 
     // Check for specific error types
-    if (errorMessage.includes('not found') || errorMessage.includes('404')) {
+    if (errorMessage.includes('Too many requests') || errorMessage.includes('429')) {
+      throw new Error('Too many requests. Please try again in a moment.');
+    } else if (errorMessage.includes('usage limit') || errorMessage.includes('402')) {
+      throw new Error('AI usage limit reached. Please check your workspace credits.');
+    } else if (errorMessage.includes('not found') || errorMessage.includes('404')) {
       throw new Error('The requested data was not found. Please check your selections.');
     } else if (errorMessage.includes('unauthorized') || errorMessage.includes('401')) {
       throw new Error('Authentication failed. Please sign in again.');
     } else if (errorMessage.includes('validation') || errorMessage.includes('400')) {
       throw new Error('Invalid request data. Please check your inputs.');
-    } else if (errorMessage.includes('API key') || errorMessage.includes('503')) {
-      throw new Error('AI service is temporarily unavailable. Please try again later.');
+    } else if (errorMessage.includes('Couldn\'t generate') || errorMessage.includes('503')) {
+      throw new Error('Couldn\'t generate document. Please try again.');
     }
 
     throw new Error(errorMessage);

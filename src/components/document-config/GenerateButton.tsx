@@ -38,9 +38,14 @@ export function GenerateButton({
 
       {/* Generation Status */}
       {loading && (
-        <div className="text-center text-sm text-gray-600">
-          <p>Processing your request...</p>
-          <p className="text-xs mt-1">This may take 30-60 seconds</p>
+        <div className="text-center text-sm text-muted-foreground space-y-2">
+          <div className="flex items-center justify-center gap-2">
+            <div className="h-2 w-2 bg-primary rounded-full animate-pulse" />
+            <div className="h-2 w-2 bg-primary rounded-full animate-pulse" style={{ animationDelay: '0.2s' }} />
+            <div className="h-2 w-2 bg-primary rounded-full animate-pulse" style={{ animationDelay: '0.4s' }} />
+          </div>
+          <p className="font-medium">AI is generating your document...</p>
+          <p className="text-xs">This typically takes 30-60 seconds</p>
         </div>
       )}
     </div>
