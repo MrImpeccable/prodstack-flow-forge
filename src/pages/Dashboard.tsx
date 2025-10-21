@@ -361,7 +361,7 @@ const Dashboard = () => {
                         <Button
                           size="sm"
                           variant="outline"
-                          onClick={() => navigate(`/workspace/${workspace.id}/ai-docs`)}
+                          onClick={() => navigate('/document-generation')}
                           className="w-full justify-start text-gray-700 dark:text-gray-300 border-gray-300 dark:border-gray-600 hover:bg-red-50 dark:hover:bg-red-900/20 hover:border-red-400 dark:hover:border-red-600 hover:text-red-700 dark:hover:text-red-400 transition-all"
                         >
                           <FileText className="h-4 w-4 mr-2" />

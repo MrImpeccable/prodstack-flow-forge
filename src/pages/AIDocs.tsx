@@ -5,11 +5,11 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Textarea } from '@/components/ui/textarea';
-import { ArrowLeft, FileText, Download, Wand2, Edit } from 'lucide-react';
-import { supabase } from '@/integrations/supabase/client';
+import { ArrowLeft, FileText, Download, Wand2, Edit, Loader2 } from 'lucide-react';
 import { fromTable } from '@/lib/supabase-helpers';
 import { useToast } from '@/hooks/use-toast';
 import { generateDocumentWordDoc, downloadFile } from '@/utils/documentExports';
+import { useDocumentGenerate } from '@/hooks/useDocumentGenerate';
 
 interface Persona {
   id: string;
@@ -28,6 +28,12 @@ interface Canvas {
   current_behaviors: string[];
 }
 
+interface Workspace {
+  id: string;
+  name: string;
+  description: string | null;
+}
+
 const AIDocs = () => {
   const { workspaceId } = useParams();
   const navigate = useNavigate();
@@ -35,20 +41,42 @@ const AIDocs = () => {
   
   const [personas, setPersonas] = useState<Persona[]>([]);
   const [canvases, setCanvases] = useState<Canvas[]>([]);
+  const [workspaces, setWorkspaces] = useState<Workspace[]>([]);
   const [selectedPersonas, setSelectedPersonas] = useState<string[]>([]);
   const [selectedCanvas, setSelectedCanvas] = useState<string>('');
-  const [documentType, setDocumentType] = useState<'prd' | 'user_stories'>('prd');
-  const [generatedContent, setGeneratedContent] = useState('');
-  const [isGenerating, setIsGenerating] = useState(false);
+  const [documentType, setDocumentType] = useState<'prd' | 'user_story'>('prd');
   const [isEditing, setIsEditing] = useState(false);
   const [editableContent, setEditableContent] = useState('');
+  
+  const { loading, generatedText, handleGenerate, setGeneratedText } = useDocumentGenerate();
 
   useEffect(() => {
     if (workspaceId) {
+      fetchWorkspace();
       fetchPersonas();
       fetchCanvases();
     }
   }, [workspaceId]);
+
+  useEffect(() => {
+    if (generatedText) {
+      setEditableContent(generatedText);
+    }
+  }, [generatedText]);
+
+  const fetchWorkspace = async () => {
+    try {
+      const { data, error } = await fromTable('workspaces')
+        .select('*')
+        .eq('id', workspaceId)
+        .single();
+
+      if (error) throw error;
+      setWorkspaces(data ? [data] : []);
+    } catch (error) {
+      console.error('Error fetching workspace:', error);
+    }
+  };
 
   const fetchPersonas = async () => {
     try {
@@ -77,6 +105,15 @@ const AIDocs = () => {
   };
 
   const generateDocument = async () => {
+    if (!workspaceId) {
+      toast({
+        title: 'Error',
+        description: 'Workspace not found',
+        variant: 'destructive',
+      });
+      return;
+    }
+
     if (selectedPersonas.length === 0 && !selectedCanvas) {
       toast({
         title: 'Error',
@@ -86,57 +123,26 @@ const AIDocs = () => {
       return;
     }
 
-    setIsGenerating(true);
-    try {
-      const selectedPersonaData = personas.filter(p => selectedPersonas.includes(p.id));
-      const selectedCanvasData = canvases.find(c => c.id === selectedCanvas);
-
-      const { data, error } = await supabase.functions.invoke('generate-documents', {
-        body: {
-          documentType,
-          personas: selectedPersonaData,
-          canvas: selectedCanvasData,
-          workspaceId
-        }
-      });
-
-      if (error) {
-        console.error('Supabase function error:', error);
-        throw new Error(error.message || 'Failed to generate document');
-      }
-
-      if (!data || !data.content) {
-        throw new Error('No content received from AI service');
-      }
-
-      setGeneratedContent(data.content);
-      setEditableContent(data.content);
-      
-      toast({
-        title: 'Success',
-        description: 'Document generated successfully',
-      });
-    } catch (error) {
-      console.error('Error generating document:', error);
-      toast({
-        title: 'Error',
-        description: error.message || 'Failed to generate document',
-        variant: 'destructive',
-      });
-    } finally {
-      setIsGenerating(false);
-    }
+    await handleGenerate({
+      selectedWorkspace: workspaceId,
+      documentType,
+      selectedPersonas,
+      selectedCanvas,
+      workspaces,
+      personas,
+      canvases,
+    });
   };
 
   const saveDocument = async () => {
-    if (!generatedContent) return;
+    if (!generatedText) return;
 
     try {
       const { error } = await fromTable('generated_documents')
         .insert([{
           workspace_id: workspaceId,
           title: `${documentType.toUpperCase()} - ${new Date().toLocaleDateString()}`,
-          content: isEditing ? editableContent : generatedContent,
+          content: isEditing ? editableContent : generatedText,
           document_type: documentType,
           source_personas: selectedPersonas,
           source_canvas: selectedCanvas || null
@@ -160,7 +166,7 @@ const AIDocs = () => {
 
   const exportAsWord = async () => {
     try {
-      const content = isEditing ? editableContent : generatedContent;
+      const content = isEditing ? editableContent : generatedText;
       const title = `${documentType.toUpperCase()} - ${new Date().toLocaleDateString()}`;
       
       const blob = await generateDocumentWordDoc(title, content);
@@ -181,7 +187,7 @@ const AIDocs = () => {
   };
 
   const exportAsMarkdown = () => {
-    const content = isEditing ? editableContent : generatedContent;
+    const content = isEditing ? editableContent : generatedText;
     const blob = new Blob([content], { type: 'text/markdown' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
@@ -243,8 +249,8 @@ const AIDocs = () => {
                       Product Requirements Document
                     </Button>
                     <Button
-                      variant={documentType === 'user_stories' ? 'default' : 'outline'}
-                      onClick={() => setDocumentType('user_stories')}
+                      variant={documentType === 'user_story' ? 'default' : 'outline'}
+                      onClick={() => setDocumentType('user_story')}
                       className="w-full justify-start"
                     >
                       <FileText className="h-4 w-4 mr-2" />
@@ -303,12 +309,33 @@ const AIDocs = () => {
 
                 <Button
                   onClick={generateDocument}
-                  disabled={isGenerating}
-                  className="w-full bg-red-600 hover:bg-red-700"
+                  disabled={loading}
+                  className="w-full bg-red-600 hover:bg-red-700 disabled:opacity-50"
                 >
-                  <Wand2 className="h-4 w-4 mr-2" />
-                  {isGenerating ? 'Generating...' : 'Generate Document'}
+                  {loading ? (
+                    <>
+                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                      Generating...
+                    </>
+                  ) : (
+                    <>
+                      <Wand2 className="h-4 w-4 mr-2" />
+                      Generate Document
+                    </>
+                  )}
                 </Button>
+                
+                {loading && (
+                  <div className="text-center text-sm text-muted-foreground space-y-2 mt-3">
+                    <div className="flex items-center justify-center gap-2">
+                      <div className="h-2 w-2 bg-primary rounded-full animate-pulse" />
+                      <div className="h-2 w-2 bg-primary rounded-full animate-pulse" style={{ animationDelay: '0.2s' }} />
+                      <div className="h-2 w-2 bg-primary rounded-full animate-pulse" style={{ animationDelay: '0.4s' }} />
+                    </div>
+                    <p className="font-medium">AI is generating your document...</p>
+                    <p className="text-xs">This typically takes 30-60 seconds</p>
+                  </div>
+                )}
               </CardContent>
             </Card>
           </div>
@@ -319,7 +346,7 @@ const AIDocs = () => {
               <CardHeader>
                 <div className="flex justify-between items-center">
                   <CardTitle>Generated Document</CardTitle>
-                  {generatedContent && (
+                  {generatedText && (
                     <div className="flex gap-2">
                       <Button
                         size="sm"
@@ -357,19 +384,19 @@ const AIDocs = () => {
                 </div>
               </CardHeader>
               <CardContent>
-                {generatedContent ? (
+                {generatedText ? (
                   <div className="space-y-4">
                     {isEditing ? (
                       <Textarea
                         value={editableContent}
                         onChange={(e) => setEditableContent(e.target.value)}
-                        className="min-h-[500px] font-mono text-sm"
+                        className="min-h-[500px] font-mono text-sm whitespace-pre-wrap resize-none"
                         placeholder="Edit your document here..."
                       />
                     ) : (
                       <div className="prose prose-sm max-w-none">
                         <pre className="whitespace-pre-wrap text-sm bg-gray-50 dark:bg-gray-800 p-4 rounded-lg">
-                          {isEditing ? editableContent : generatedContent}
+                          {generatedText}
                         </pre>
                       </div>
                     )}
