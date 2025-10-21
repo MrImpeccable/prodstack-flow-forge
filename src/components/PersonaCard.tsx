@@ -4,8 +4,11 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
-import { FileText, Download } from 'lucide-react';
-import { exportPersonaToWord, exportPersonaToPNG } from '@/utils/documentExports';
+import { FileText, Download, Sparkles } from 'lucide-react';
+import { toast } from 'sonner';
+import { exportPersonaToWord } from '@/utils/documentExports';
+import { exportPersonaAsModernPNG } from '@/utils/modernPersonaExport';
+import { usePersonaAvatar } from '@/hooks/usePersonaAvatar';
 
 interface Persona {
   id: string;
@@ -24,12 +27,28 @@ interface PersonaCardProps {
 }
 
 const PersonaCard: React.FC<PersonaCardProps> = ({ persona }) => {
+  const { generateAvatar, isGenerating } = usePersonaAvatar();
+
   const handleExportWord = () => {
     exportPersonaToWord(persona);
   };
 
-  const handleExportPNG = () => {
-    exportPersonaToPNG(persona);
+  const handleExportPNG = async () => {
+    try {
+      await exportPersonaAsModernPNG(persona);
+      toast.success('Persona exported as PNG successfully');
+    } catch (error) {
+      toast.error('Failed to export persona');
+    }
+  };
+
+  const handleRegenerateAvatar = async () => {
+    if (!persona.id) return;
+    const avatarUrl = await generateAvatar(persona.id);
+    if (avatarUrl) {
+      // Trigger a page refresh or state update to show new avatar
+      window.location.reload();
+    }
   };
 
   const getInitials = (name: string) => {
@@ -45,12 +64,24 @@ const PersonaCard: React.FC<PersonaCardProps> = ({ persona }) => {
     <Card className="bg-white dark:bg-[#1e1e1e] border-gray-200 dark:border-gray-700 hover:border-red-300 dark:hover:border-red-600 transition-all duration-300 shadow-lg hover:shadow-xl">
       <CardHeader className="pb-4">
         <div className="flex items-center gap-4">
-          <Avatar className="h-16 w-16">
-            <AvatarImage src={persona.avatar_url} alt={persona.name} />
-            <AvatarFallback className="bg-red-600 text-white text-lg">
-              {getInitials(persona.name)}
-            </AvatarFallback>
-          </Avatar>
+          <div className="relative">
+            <Avatar className="h-20 w-20 ring-2 ring-gray-200 dark:ring-gray-700">
+              <AvatarImage src={persona.avatar_url} alt={persona.name} />
+              <AvatarFallback className="bg-red-600 text-white text-lg">
+                {isGenerating ? '...' : getInitials(persona.name)}
+              </AvatarFallback>
+            </Avatar>
+            <Button
+              size="sm"
+              variant="ghost"
+              onClick={handleRegenerateAvatar}
+              disabled={isGenerating}
+              className="absolute -bottom-1 -right-1 h-7 w-7 rounded-full bg-white dark:bg-gray-800 shadow-md hover:bg-gray-100 dark:hover:bg-gray-700 p-0"
+              title="Regenerate AI Avatar"
+            >
+              <Sparkles className="h-3 w-3 text-red-600" />
+            </Button>
+          </div>
           <div className="flex-1">
             <CardTitle className="text-xl text-gray-900 dark:text-white mb-1">
               {persona.name}

@@ -2,3 +2,6 @@ project_id = "hzdnebghobmcwygswghy"
 
 [functions.generate-document-ai]
 verify_jwt = true
+
+[functions.generate-persona-avatar]
+verify_jwt = true
