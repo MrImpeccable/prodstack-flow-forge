@@ -1,14 +1,15 @@
 
-import React from 'react';
+import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
-import { FileText, Download, Sparkles } from 'lucide-react';
+import { FileText, Download, Sparkles, Eye } from 'lucide-react';
 import { toast } from 'sonner';
 import { exportPersonaToWord } from '@/utils/documentExports';
 import { exportPersonaAsModernPNG } from '@/utils/modernPersonaExport';
 import { usePersonaAvatar } from '@/hooks/usePersonaAvatar';
+import ExportPreviewModal from './ExportPreviewModal';
 
 interface Persona {
   id: string;
@@ -28,6 +29,7 @@ interface PersonaCardProps {
 
 const PersonaCard: React.FC<PersonaCardProps> = ({ persona }) => {
   const { generateAvatar, isGenerating } = usePersonaAvatar();
+  const [showPreview, setShowPreview] = useState(false);
 
   const handleExportWord = () => {
     exportPersonaToWord(persona);
@@ -153,11 +155,20 @@ const PersonaCard: React.FC<PersonaCardProps> = ({ persona }) => {
           <Button
             size="sm"
             variant="outline"
+            onClick={() => setShowPreview(true)}
+            className="flex-1 text-gray-700 dark:text-gray-300 border-gray-300 dark:border-gray-600 hover:bg-purple-50 dark:hover:bg-purple-900/20"
+          >
+            <Eye className="h-4 w-4 mr-2" />
+            Preview
+          </Button>
+          <Button
+            size="sm"
+            variant="outline"
             onClick={handleExportWord}
             className="flex-1 text-gray-700 dark:text-gray-300 border-gray-300 dark:border-gray-600 hover:bg-blue-50 dark:hover:bg-blue-900/20"
           >
             <FileText className="h-4 w-4 mr-2" />
-            Export Word
+            Word
           </Button>
           <Button
             size="sm"
@@ -166,9 +177,15 @@ const PersonaCard: React.FC<PersonaCardProps> = ({ persona }) => {
             className="flex-1 text-gray-700 dark:text-gray-300 border-gray-300 dark:border-gray-600 hover:bg-green-50 dark:hover:bg-green-900/20"
           >
             <Download className="h-4 w-4 mr-2" />
-            Export PNG
+            PNG
           </Button>
         </div>
+
+        <ExportPreviewModal
+          persona={persona}
+          open={showPreview}
+          onOpenChange={setShowPreview}
+        />
       </CardContent>
     </Card>
   );
