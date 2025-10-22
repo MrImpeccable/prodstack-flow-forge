@@ -11,8 +11,6 @@ import { supabase } from '@/integrations/supabase/client';
 import { fromTable } from '@/lib/supabase-helpers';
 import { useToast } from '@/hooks/use-toast';
 import { generatePersonaWordDoc, downloadFile } from '@/utils/documentExports';
-import { exportPersonaAsModernPNG } from '@/utils/modernPersonaExport';
-import { usePersonaAvatar } from '@/hooks/usePersonaAvatar';
 
 interface Persona {
   id?: string;
@@ -30,7 +28,6 @@ const PersonaBuilder = () => {
   const { workspaceId } = useParams();
   const navigate = useNavigate();
   const { toast } = useToast();
-  const { generateAvatar, isGenerating } = usePersonaAvatar();
   
   const [persona, setPersona] = useState<Persona>({
     name: '',
@@ -115,8 +112,6 @@ const PersonaBuilder = () => {
         tools: persona.tools.filter(t => t.trim()),
       };
 
-      let newPersonaId: string | null = null;
-
       if (editingId) {
         const { error } = await fromTable('personas')
           .update(personaData)
@@ -124,26 +119,16 @@ const PersonaBuilder = () => {
 
         if (error) throw error;
       } else {
-        const { data: insertData, error } = await fromTable('personas')
-          .insert([personaData])
-          .select('id')
-          .single();
+        const { error } = await fromTable('personas')
+          .insert([personaData]);
 
         if (error) throw error;
-        newPersonaId = insertData?.id;
       }
 
       toast({
         title: 'Success',
         description: `Persona ${editingId ? 'updated' : 'created'} successfully`,
       });
-
-      // Generate AI avatar for new personas
-      if (newPersonaId && !editingId) {
-        generateAvatar(newPersonaId).then(() => {
-          fetchPersonas(); // Refresh to show the new avatar
-        });
-      }
 
       // Reset form
       setPersona({
@@ -198,23 +183,6 @@ const PersonaBuilder = () => {
       toast({
         title: 'Error',
         description: 'Failed to export persona as Word document',
-        variant: 'destructive',
-      });
-    }
-  };
-
-  const exportPersonaAsModernImage = async (personaToExport: Persona & { id?: string }) => {
-    try {
-      await exportPersonaAsModernPNG(personaToExport);
-      toast({
-        title: 'Success',
-        description: 'Persona exported as modern PNG successfully',
-      });
-    } catch (error) {
-      console.error('Error exporting persona as modern PNG:', error);
-      toast({
-        title: 'Error',
-        description: 'Failed to export persona as modern PNG',
         variant: 'destructive',
       });
     }
@@ -472,8 +440,7 @@ const PersonaBuilder = () => {
                         <Button
                           size="sm"
                           variant="outline"
-                          onClick={() => exportPersonaAsModernImage(p)}
-                          title="Export as modern professional PNG"
+                          onClick={() => exportPersonaAsImage(p)}
                         >
                           <Image className="h-3 w-3 mr-1" />
                           PNG
