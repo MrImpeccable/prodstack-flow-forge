@@ -8,22 +8,12 @@ import {
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Download, FileText, Image as ImageIcon, Loader2 } from 'lucide-react';
+import { Download, FileText, Image as ImageIcon, Loader2, Presentation } from 'lucide-react';
 import { exportPersonaToWord } from '@/utils/documentExports';
 import { exportPersonaAsModernPNG } from '@/utils/modernPersonaExport';
+import { exportPersonaAsPitchDeck, generatePitchDeckPreview } from '@/utils/pitchDeckPersonaExport';
+import { Persona } from '@/components/PersonaCard';
 import { toast } from 'sonner';
-
-interface Persona {
-  id?: string;
-  name: string;
-  avatar_url?: string;
-  age?: number;
-  role?: string;
-  goals?: string[];
-  frustrations?: string[];
-  tools?: string[];
-  bio?: string;
-}
 
 interface ExportPreviewModalProps {
   persona: Persona;
@@ -37,11 +27,13 @@ const ExportPreviewModal: React.FC<ExportPreviewModalProps> = ({
   onOpenChange,
 }) => {
   const [pngPreview, setPngPreview] = useState<string | null>(null);
+  const [pitchDeckPreview, setPitchDeckPreview] = useState<string | null>(null);
   const [isGeneratingPreview, setIsGeneratingPreview] = useState(false);
 
   useEffect(() => {
     if (open) {
       generatePngPreview();
+      generatePitchDeckPreviewAsync();
     }
   }, [open]);
 
@@ -97,6 +89,24 @@ const ExportPreviewModal: React.FC<ExportPreviewModalProps> = ({
     }
   };
 
+  const generatePitchDeckPreviewAsync = async () => {
+    try {
+      const preview = await generatePitchDeckPreview(persona);
+      setPitchDeckPreview(preview);
+    } catch (error) {
+      console.error('Pitch deck preview generation failed:', error);
+    }
+  };
+
+  const handleDownloadPitchDeck = async () => {
+    try {
+      await exportPersonaAsPitchDeck(persona);
+      toast.success('Pitch deck card downloaded successfully');
+    } catch (error) {
+      toast.error('Failed to download pitch deck card');
+    }
+  };
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
@@ -107,17 +117,53 @@ const ExportPreviewModal: React.FC<ExportPreviewModalProps> = ({
           </DialogDescription>
         </DialogHeader>
 
-        <Tabs defaultValue="png" className="w-full">
-          <TabsList className="grid w-full grid-cols-2">
+        <Tabs defaultValue="pitch-deck" className="w-full">
+          <TabsList className="grid w-full grid-cols-3">
+            <TabsTrigger value="pitch-deck" className="flex items-center gap-2">
+              <Presentation className="h-4 w-4" />
+              Pitch Deck
+            </TabsTrigger>
             <TabsTrigger value="png" className="flex items-center gap-2">
               <ImageIcon className="h-4 w-4" />
-              PNG Preview
+              Detailed Profile
             </TabsTrigger>
             <TabsTrigger value="word" className="flex items-center gap-2">
               <FileText className="h-4 w-4" />
               Word Format
             </TabsTrigger>
           </TabsList>
+
+          <TabsContent value="pitch-deck" className="space-y-4">
+            <div className="border border-gray-200 dark:border-gray-700 rounded-lg p-4 bg-gray-50 dark:bg-gray-900 min-h-[400px] flex items-center justify-center">
+              {isGeneratingPreview ? (
+                <div className="flex flex-col items-center gap-3">
+                  <Loader2 className="h-8 w-8 animate-spin text-red-600" />
+                  <p className="text-sm text-gray-600 dark:text-gray-400">
+                    Generating pitch deck preview...
+                  </p>
+                </div>
+              ) : pitchDeckPreview ? (
+                <img
+                  src={pitchDeckPreview}
+                  alt="Pitch Deck Preview"
+                  className="max-w-full h-auto rounded shadow-lg"
+                />
+              ) : (
+                <p className="text-gray-600 dark:text-gray-400">
+                  Preview unavailable
+                </p>
+              )}
+            </div>
+            <div className="flex justify-between items-center">
+              <p className="text-sm text-gray-600 dark:text-gray-400">
+                Compact 600x700px pitch deck card with emoji avatar
+              </p>
+              <Button onClick={handleDownloadPitchDeck} className="bg-red-600 hover:bg-red-700">
+                <Download className="h-4 w-4 mr-2" />
+                Download Pitch Deck
+              </Button>
+            </div>
+          </TabsContent>
 
           <TabsContent value="png" className="space-y-4">
             <div className="border border-gray-200 dark:border-gray-700 rounded-lg p-4 bg-gray-50 dark:bg-gray-900 min-h-[400px] flex items-center justify-center">
